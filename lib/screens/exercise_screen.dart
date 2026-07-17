@@ -14,8 +14,16 @@ class ExerciseScreen extends StatefulWidget {
   final ExerciseType type;
   final OwnedPokemon? active;
 
-  const ExerciseScreen(
-      {super.key, required this.profile, required this.type, this.active});
+  /// Nur für Tests: liefert feste Aufgaben statt zufälliger.
+  final Exercise Function()? exerciseFactory;
+
+  const ExerciseScreen({
+    super.key,
+    required this.profile,
+    required this.type,
+    this.active,
+    this.exerciseFactory,
+  });
 
   @override
   State<ExerciseScreen> createState() => _ExerciseScreenState();
@@ -42,7 +50,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _newExercise() {
-    _exercise = generateExercise(widget.type);
+    _exercise =
+        widget.exerciseFactory?.call() ?? generateExercise(widget.type);
     _inputs = List.filled(_exercise.answers.length, '');
     _active = 0;
     _wrong = {};
@@ -62,8 +71,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     if (_locked) return;
     setState(() {
       if (_inputs[_active].isNotEmpty) {
-        _inputs[_active] =
-            _inputs[_active].substring(0, _inputs[_active].length - 1);
+        _inputs[_active] = _inputs[_active].substring(
+          0,
+          _inputs[_active].length - 1,
+        );
       } else if (_active > 0) {
         _active--;
       }
@@ -81,7 +92,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
     final wrong = <int>{
       for (var i = 0; i < _exercise.answers.length; i++)
-        if (int.tryParse(_inputs[i]) != _exercise.answers[i]) i
+        if (int.tryParse(_inputs[i]) != _exercise.answers[i]) i,
     };
     if (wrong.isEmpty) {
       _solved(_tries == 0 ? 10 : 5);
@@ -132,7 +143,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     setState(() {
       _roundPoints += earned;
       _correctCount++;
-      _feedback = earned == 10 ? 'Super! +$earned Punkte 🎉' : 'Richtig! +$earned Punkte 👍';
+      _feedback = earned == 10
+          ? 'Super! +$earned Punkte 🎉'
+          : 'Richtig! +$earned Punkte 👍';
       _feedbackGood = true;
       _wrong = {};
       _locked = true;
@@ -156,12 +169,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   Future<void> _finishRound() async {
     final profile = widget.profile;
-    profile.points += _roundPoints;
-    profile.ballProgress += _roundPoints;
-    while (profile.ballProgress >= 100) {
-      profile.ballProgress -= 100;
-      profile.pokeballs++;
-    }
+    profile.addPoints(_roundPoints);
     await DatabaseHelper.instance.updateProfile(profile);
 
     final active = widget.active;
@@ -172,74 +180,116 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     if (mounted) setState(() => _finished = true);
   }
 
+  Future<void> _confirmExit() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Runde beenden?'),
+        content: Text(
+          _roundPoints > 0
+              ? 'Bist du sicher? Deine ⭐ $_roundPoints Punkte aus dieser Runde gehen verloren!'
+              : 'Bist du sicher?',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Weiterüben!'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Beenden'),
+          ),
+        ],
+      ),
+    );
+    if (leave == true && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_finished) return _SummaryView(state: this);
 
     final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.type.title),
-        actions: [
-          Center(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmExit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.type.title),
+          actions: [
+            Center(
               child: Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Text('⭐ $_roundPoints',
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold)),
-          )),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              LinearProgressIndicator(
-                value: (_questionNr - 1) / questionsPerRound,
-                minHeight: 10,
-                borderRadius: BorderRadius.circular(6),
+                padding: const EdgeInsets.only(right: 16),
+                child: Text(
+                  '⭐ $_roundPoints',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              const SizedBox(height: 4),
-              Text('Aufgabe $_questionNr von $questionsPerRound'),
-              const Spacer(),
-              if (_exercise.prompt != null) ...[
-                Text(_exercise.prompt!,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                LinearProgressIndicator(
+                  value: (_questionNr - 1) / questionsPerRound,
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                const SizedBox(height: 4),
+                Text('Aufgabe $_questionNr von $questionsPerRound'),
+                const Spacer(),
+                if (_exercise.prompt != null) ...[
+                  Text(
+                    _exercise.prompt!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 22)),
-                const SizedBox(height: 16),
-              ],
-              for (final line in _exercise.lines) ...[
-                _buildLine(line),
-                const SizedBox(height: 16),
-              ],
-              SizedBox(
-                height: 72,
-                child: Center(
-                  child: _feedback != null
-                      ? Text(_feedback!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                for (final line in _exercise.lines) ...[
+                  _buildLine(line),
+                  const SizedBox(height: 16),
+                ],
+                SizedBox(
+                  height: 72,
+                  child: Center(
+                    child: _feedback != null
+                        ? Text(
+                            _feedback!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
                               color: _feedbackGood
                                   ? Colors.green
-                                  : scheme.error))
-                      : null,
+                                  : scheme.error,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              if (_exercise.isTrueFalse)
-                _buildTrueFalseButtons()
-              else
-                Numpad(
-                  onDigit: _onDigit,
-                  onDelete: _onDelete,
-                  onSubmit: _onSubmit,
-                  submitEnabled: !_locked &&
-                      (_inputs[_active].isNotEmpty || _firstEmpty < 0),
-                ),
-            ],
+                const Spacer(),
+                if (_exercise.isTrueFalse)
+                  _buildTrueFalseButtons()
+                else
+                  Numpad(
+                    onDigit: _onDigit,
+                    onDelete: _onDelete,
+                    onSubmit: _onSubmit,
+                    submitEnabled:
+                        !_locked &&
+                        (_inputs[_active].isNotEmpty || _firstEmpty < 0),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -257,9 +307,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           if (token.isBlank)
             _BlankBox(
               value: _inputs[token.blank!],
-              active: !_locked &&
-                  !_exercise.isTrueFalse &&
-                  _active == token.blank,
+              active:
+                  !_locked && !_exercise.isTrueFalse && _active == token.blank,
               wrong: _wrong.contains(token.blank),
               solved: _locked && _feedbackGood,
               onTap: _locked
@@ -267,9 +316,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   : () => setState(() => _active = token.blank!),
             )
           else
-            Text(token.text!,
-                style: const TextStyle(
-                    fontSize: 30, fontWeight: FontWeight.bold)),
+            Text(
+              token.text!,
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            ),
       ],
     );
   }
@@ -280,7 +330,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         Expanded(
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green, foregroundColor: Colors.white),
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
             onPressed: _locked ? null : () => _onTrueFalse(true),
             icon: const Icon(Icons.check, size: 28),
             label: const Text('Korrekt'),
@@ -290,7 +342,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         Expanded(
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: _locked ? null : () => _onTrueFalse(false),
             icon: const Icon(Icons.close, size: 28),
             label: const Text('Falsch'),
@@ -308,12 +362,13 @@ class _BlankBox extends StatelessWidget {
   final bool solved;
   final VoidCallback? onTap;
 
-  const _BlankBox(
-      {required this.value,
-      required this.active,
-      required this.wrong,
-      required this.solved,
-      this.onTap});
+  const _BlankBox({
+    required this.value,
+    required this.active,
+    required this.wrong,
+    required this.solved,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -321,10 +376,10 @@ class _BlankBox extends StatelessWidget {
     final borderColor = wrong
         ? scheme.error
         : solved
-            ? Colors.green
-            : active
-                ? scheme.primary
-                : scheme.outline;
+        ? Colors.green
+        : active
+        ? scheme.primary
+        : scheme.outline;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -335,14 +390,20 @@ class _BlankBox extends StatelessWidget {
           color: active
               ? scheme.primaryContainer.withValues(alpha: 0.5)
               : scheme.surface,
-          border: Border.all(color: borderColor, width: active || wrong ? 3 : 2),
+          border: Border.all(
+            color: borderColor,
+            width: active || wrong ? 3 : 2,
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(value.isEmpty ? '' : value,
-            style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: wrong ? scheme.error : scheme.onSurface)),
+        child: Text(
+          value.isEmpty ? '' : value,
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: wrong ? scheme.error : scheme.onSurface,
+          ),
+        ),
       ),
     );
   }
@@ -369,11 +430,13 @@ class _SummaryView extends StatelessWidget {
                 state._correctCount >= 8
                     ? 'Fantastisch! 🏆'
                     : state._correctCount >= 5
-                        ? 'Gut gemacht! 🎉'
-                        : 'Weiter üben! 💪',
+                    ? 'Gut gemacht! 🎉'
+                    : 'Weiter üben! 💪',
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -386,17 +449,20 @@ class _SummaryView extends StatelessWidget {
               if (active != null) ...[
                 const SizedBox(height: 16),
                 Center(
-                    child:
-                        PokemonImage(speciesId: active.speciesId, size: 120)),
+                  child: PokemonImage(speciesId: active.speciesId, size: 120),
+                ),
               ],
               if (gotBall) ...[
                 const SizedBox(height: 16),
-                const Text('Du hast einen Pokéball verdient! 🎊',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepOrange)),
+                const Text(
+                  'Du hast einen Pokéball verdient! 🎊',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepOrange,
+                  ),
+                ),
               ],
               const SizedBox(height: 32),
               ElevatedButton(
