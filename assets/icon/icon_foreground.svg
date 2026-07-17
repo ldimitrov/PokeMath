@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="ballClip"><circle cx="512" cy="512" r="230"/></clipPath>
+  </defs>
+  <g clip-path="url(#ballClip)">
+    <rect x="282" y="282" width="460" height="230" fill="#EE1515"/>
+    <rect x="282" y="512" width="460" height="230" fill="#F5F5F5"/>
+    <rect x="282" y="493" width="460" height="38" fill="#222222"/>
+  </g>
+  <circle cx="512" cy="512" r="230" fill="none" stroke="#222222" stroke-width="20"/>
+  <circle cx="512" cy="512" r="96" fill="#222222"/>
+  <circle cx="512" cy="512" r="75" fill="#FFFFFF"/>
+  <g stroke="#EE1515" stroke-width="28" stroke-linecap="round">
+    <line x1="512" y1="466" x2="512" y2="558"/>
+    <line x1="466" y1="512" x2="558" y2="512"/>
+  </g>
+</svg>
