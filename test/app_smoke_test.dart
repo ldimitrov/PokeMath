@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pokemath/db/database_helper.dart';
 import 'package:pokemath/main.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -6,6 +7,7 @@ void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfiNoIsolate;
+    DatabaseHelper.dbName = 'pokemath_smoke_test.db';
   });
 
   testWidgets('App startet und zeigt die Profilauswahl', (tester) async {

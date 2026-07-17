@@ -35,24 +35,13 @@ class _CatchScreenState extends State<CatchScreen>
     super.dispose();
   }
 
-  Species _randomSpecies() {
-    final pool = catchableSpecies;
-    final total = pool.fold<int>(0, (sum, s) => sum + s.catchWeight);
-    var roll = Random().nextInt(total);
-    for (final s in pool) {
-      roll -= s.catchWeight;
-      if (roll < 0) return s;
-    }
-    return pool.first;
-  }
-
   Future<void> _open() async {
     if (_opening) return;
     _opening = true;
     _shake.stop();
 
     final profile = widget.profile;
-    final species = _randomSpecies();
+    final species = randomCatch(Random());
     profile.pokeballs--;
     final owned =
         await DatabaseHelper.instance.addPokemon(profile.id, species.id);

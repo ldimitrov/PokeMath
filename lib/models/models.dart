@@ -17,6 +17,16 @@ class Profile {
     this.activePokemonId,
   });
 
+  /// Verbucht Rundenpunkte; je 100 Fortschrittspunkte werden ein Pokéball.
+  void addPoints(int pts) {
+    points += pts;
+    ballProgress += pts;
+    while (ballProgress >= 100) {
+      ballProgress -= 100;
+      pokeballs++;
+    }
+  }
+
   factory Profile.fromMap(Map<String, dynamic> m) => Profile(
         id: m['id'] as int,
         name: m['name'] as String,

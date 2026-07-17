@@ -6,6 +6,10 @@ import '../models/models.dart';
 class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
+
+  /// Nur für Tests überschreibbar, damit sie nicht die echte DB anfassen.
+  static String dbName = 'pokemath.db';
+
   Database? _db;
 
   Future<Database> get db async => _db ??= await _open();
@@ -13,7 +17,7 @@ class DatabaseHelper {
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(
-      join(dir, 'pokemath.db'),
+      join(dir, dbName),
       version: 1,
       onCreate: (db, _) async {
         await db.execute('''

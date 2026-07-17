@@ -1,3 +1,5 @@
+import 'dart:math';
+
 /// Statische Pokédex-Daten. Die Bild-Dateien liegen unter `assets/pokemon/<id>.png`.
 class Species {
   final int id; // Nationaldex-Nummer = Dateiname des Bildes
@@ -43,3 +45,15 @@ Species speciesById(int id) => pokedex.firstWhere((s) => s.id == id);
 
 List<Species> get catchableSpecies =>
     pokedex.where((s) => s.catchWeight > 0).toList();
+
+/// Zieht ein zufälliges fangbares Pokémon, gewichtet nach [Species.catchWeight].
+Species randomCatch(Random rng) {
+  final pool = catchableSpecies;
+  final total = pool.fold<int>(0, (sum, s) => sum + s.catchWeight);
+  var roll = rng.nextInt(total);
+  for (final s in pool) {
+    roll -= s.catchWeight;
+    if (roll < 0) return s;
+  }
+  return pool.first;
+}
