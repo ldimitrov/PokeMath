@@ -23,67 +23,132 @@ class ExerciseScreen extends StatefulWidget {
 
 class _ExerciseScreenState extends State<ExerciseScreen> {
   late Exercise _exercise;
+  late List<String> _inputs;
+  int _active = 0;
+  Set<int> _wrong = {};
   int _questionNr = 1;
-  String _input = '';
   int _tries = 0;
   int _roundPoints = 0;
   int _correctCount = 0;
-  bool _showHint = false;
   String? _feedback;
   bool _feedbackGood = false;
+  bool _locked = false; // Aufgabe gelöst/aufgegeben, wartet auf nächste
   bool _finished = false;
 
   @override
   void initState() {
     super.initState();
-    _exercise = generateExercise(widget.type);
+    _newExercise();
   }
 
-  void _submit() {
-    if (_input.isEmpty) return;
-    final given = int.parse(_input);
-    if (given == _exercise.answer) {
-      final earned = _tries == 0 ? 10 : 5;
-      setState(() {
-        _roundPoints += earned;
-        _correctCount++;
-        _feedback = _tries == 0
-            ? 'Super! +$earned Punkte 🎉'
-            : 'Richtig! +$earned Punkte 👍';
-        _feedbackGood = true;
-      });
-      _nextAfterDelay();
+  void _newExercise() {
+    _exercise = generateExercise(widget.type);
+    _inputs = List.filled(_exercise.answers.length, '');
+    _active = 0;
+    _wrong = {};
+    _tries = 0;
+    _feedback = null;
+    _locked = false;
+  }
+
+  int get _firstEmpty => _inputs.indexWhere((s) => s.isEmpty);
+
+  void _onDigit(int d) {
+    if (_locked || _inputs[_active].length >= 2) return;
+    setState(() => _inputs[_active] += '$d');
+  }
+
+  void _onDelete() {
+    if (_locked) return;
+    setState(() {
+      if (_inputs[_active].isNotEmpty) {
+        _inputs[_active] =
+            _inputs[_active].substring(0, _inputs[_active].length - 1);
+      } else if (_active > 0) {
+        _active--;
+      }
+    });
+  }
+
+  /// OK springt zum nächsten leeren Feld; sind alle gefüllt, wird geprüft.
+  void _onSubmit() {
+    if (_locked) return;
+    final empty = _firstEmpty;
+    if (empty >= 0) {
+      if (_inputs[_active].isEmpty) return;
+      setState(() => _active = empty);
+      return;
+    }
+    final wrong = <int>{
+      for (var i = 0; i < _exercise.answers.length; i++)
+        if (int.tryParse(_inputs[i]) != _exercise.answers[i]) i
+    };
+    if (wrong.isEmpty) {
+      _solved(_tries == 0 ? 10 : 5);
     } else {
       _tries++;
       if (_tries >= 2) {
         setState(() {
-          _feedback = 'Die richtige Antwort ist ${_exercise.answer}.';
+          // Richtige Werte zeigen, falsche Felder markieren.
+          for (final i in wrong) {
+            _inputs[i] = '${_exercise.answers[i]}';
+          }
+          _wrong = wrong;
+          _feedback = 'Schau, so ist es richtig. 🧐';
           _feedbackGood = false;
+          _locked = true;
         });
-        _nextAfterDelay();
+        _nextAfterDelay(const Duration(milliseconds: 2600));
       } else {
         setState(() {
+          for (final i in wrong) {
+            _inputs[i] = '';
+          }
+          _wrong = wrong;
+          _active = wrong.reduce((a, c) => a < c ? a : c);
           _feedback = 'Fast! Probier es noch einmal. 💪';
           _feedbackGood = false;
-          _input = '';
         });
       }
     }
   }
 
-  void _nextAfterDelay() {
-    Future.delayed(const Duration(milliseconds: 1600), () {
+  /// Korrekt/Falsch-Aufgaben: nur ein Versuch.
+  void _onTrueFalse(bool guess) {
+    if (_locked) return;
+    if (guess == _exercise.isTrue) {
+      _solved(10);
+    } else {
+      setState(() {
+        _feedback = 'Leider nicht. ${_exercise.solution ?? ''}';
+        _feedbackGood = false;
+        _locked = true;
+      });
+      _nextAfterDelay(const Duration(milliseconds: 2600));
+    }
+  }
+
+  void _solved(int earned) {
+    setState(() {
+      _roundPoints += earned;
+      _correctCount++;
+      _feedback = earned == 10 ? 'Super! +$earned Punkte 🎉' : 'Richtig! +$earned Punkte 👍';
+      _feedbackGood = true;
+      _wrong = {};
+      _locked = true;
+    });
+    _nextAfterDelay(const Duration(milliseconds: 1600));
+  }
+
+  void _nextAfterDelay(Duration delay) {
+    Future.delayed(delay, () {
       if (!mounted) return;
       if (_questionNr >= questionsPerRound) {
         _finishRound();
       } else {
         setState(() {
           _questionNr++;
-          _exercise = generateExercise(widget.type);
-          _input = '';
-          _tries = 0;
-          _showHint = false;
-          _feedback = null;
+          _newExercise();
         });
       }
     });
@@ -112,8 +177,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     if (_finished) return _SummaryView(state: this);
 
     final scheme = Theme.of(context).colorScheme;
-    final answering = _feedback == null || (!_feedbackGood && _tries < 2);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.type.title),
@@ -140,69 +203,146 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               const SizedBox(height: 4),
               Text('Aufgabe $_questionNr von $questionsPerRound'),
               const Spacer(),
-              Text(
-                _exercise.question,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 32, fontWeight: FontWeight.bold, height: 1.4),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: 140,
-                height: 64,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(color: scheme.primary, width: 3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(_input.isEmpty ? '?' : _input,
-                    style: const TextStyle(
-                        fontSize: 32, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 12),
+              if (_exercise.prompt != null) ...[
+                Text(_exercise.prompt!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 22)),
+                const SizedBox(height: 16),
+              ],
+              for (final line in _exercise.lines) ...[
+                _buildLine(line),
+                const SizedBox(height: 16),
+              ],
               SizedBox(
-                height: 64,
+                height: 72,
                 child: Center(
                   child: _feedback != null
                       ? Text(_feedback!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 19,
                               fontWeight: FontWeight.bold,
                               color: _feedbackGood
                                   ? Colors.green
                                   : scheme.error))
-                      : _exercise.hint != null
-                          ? _showHint
-                              ? Text(_exercise.hint!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 15))
-                              : TextButton.icon(
-                                  onPressed: () =>
-                                      setState(() => _showHint = true),
-                                  icon: const Icon(Icons.lightbulb_outline),
-                                  label: const Text('Tipp anzeigen'))
-                          : null,
+                      : null,
                 ),
               ),
               const Spacer(),
-              Numpad(
-                onDigit: (d) {
-                  if (!answering || _input.length >= 2) return;
-                  setState(() => _input += '$d');
-                },
-                onDelete: () {
-                  if (_input.isNotEmpty) {
-                    setState(
-                        () => _input = _input.substring(0, _input.length - 1));
-                  }
-                },
-                onSubmit: _submit,
-                submitEnabled: answering && _input.isNotEmpty,
-              ),
+              if (_exercise.isTrueFalse)
+                _buildTrueFalseButtons()
+              else
+                Numpad(
+                  onDigit: _onDigit,
+                  onDelete: _onDelete,
+                  onSubmit: _onSubmit,
+                  submitEnabled: !_locked &&
+                      (_inputs[_active].isNotEmpty || _firstEmpty < 0),
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLine(List<Token> line) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final token in line)
+          if (token.isBlank)
+            _BlankBox(
+              value: _inputs[token.blank!],
+              active: !_locked &&
+                  !_exercise.isTrueFalse &&
+                  _active == token.blank,
+              wrong: _wrong.contains(token.blank),
+              solved: _locked && _feedbackGood,
+              onTap: _locked
+                  ? null
+                  : () => setState(() => _active = token.blank!),
+            )
+          else
+            Text(token.text!,
+                style: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildTrueFalseButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green, foregroundColor: Colors.white),
+            onPressed: _locked ? null : () => _onTrueFalse(true),
+            icon: const Icon(Icons.check, size: 28),
+            label: const Text('Korrekt'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: _locked ? null : () => _onTrueFalse(false),
+            icon: const Icon(Icons.close, size: 28),
+            label: const Text('Falsch'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BlankBox extends StatelessWidget {
+  final String value;
+  final bool active;
+  final bool wrong;
+  final bool solved;
+  final VoidCallback? onTap;
+
+  const _BlankBox(
+      {required this.value,
+      required this.active,
+      required this.wrong,
+      required this.solved,
+      this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor = wrong
+        ? scheme.error
+        : solved
+            ? Colors.green
+            : active
+                ? scheme.primary
+                : scheme.outline;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 62,
+        height: 54,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active
+              ? scheme.primaryContainer.withValues(alpha: 0.5)
+              : scheme.surface,
+          border: Border.all(color: borderColor, width: active || wrong ? 3 : 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(value.isEmpty ? '' : value,
+            style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: wrong ? scheme.error : scheme.onSurface)),
       ),
     );
   }

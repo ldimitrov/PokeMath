@@ -4,6 +4,9 @@ import 'dart:math';
 enum ExerciseType {
   plusMinus('Plus und Minus', 'Rechne bis 20', '➕➖'),
   zehner('Zehnerübergang', 'Rechne bis 10 und dann weiter', '🔟'),
+  fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
+  kette('Kettenaufgaben', 'Rechne die ganze Kette', '🔗'),
+  korrektFalsch('Korrekt oder falsch?', 'Stimmt die Rechnung?', '⚖️'),
   nachbar('Nachbarzahlen', 'Welche Zahl kommt davor oder danach?', '🔢'),
   folge('Zahlenfolgen', 'Welche Zahl fehlt in der Reihe?', '➡️');
 
@@ -13,12 +16,38 @@ enum ExerciseType {
   const ExerciseType(this.title, this.subtitle, this.emoji);
 }
 
-class Exercise {
-  final String question;
-  final int answer;
-  final String? hint;
+/// Ein Baustein einer Aufgabenzeile: entweder fester Text (Zahl, Operator)
+/// oder ein Eingabefeld (Index in [Exercise.answers]).
+class Token {
+  final String? text;
+  final int? blank;
+  const Token.text(this.text) : blank = null;
+  const Token.blank(this.blank) : text = null;
+  bool get isBlank => blank != null;
+}
 
-  Exercise({required this.question, required this.answer, this.hint});
+Token t(String s) => Token.text(s);
+Token b(int i) => Token.blank(i);
+
+class Exercise {
+  /// Optionale Frage über den Rechenzeilen.
+  final String? prompt;
+
+  /// Rechenzeilen aus Text-Tokens und Eingabefeldern.
+  final List<List<Token>> lines;
+
+  /// Erwartete Werte der Eingabefelder, indexiert über [Token.blank].
+  final List<int> answers;
+
+  /// Nur für Korrekt/Falsch-Aufgaben: stimmt die gezeigte Rechnung?
+  final bool? isTrue;
+
+  /// Erklärung bei falscher Antwort (z.B. die richtige Rechnung).
+  final String? solution;
+
+  Exercise({this.prompt, required this.lines, this.answers = const [], this.isTrue, this.solution});
+
+  bool get isTrueFalse => isTrue != null;
 }
 
 final _rng = Random();
@@ -29,6 +58,12 @@ Exercise generateExercise(ExerciseType type) {
       return _plusMinus();
     case ExerciseType.zehner:
       return _zehner();
+    case ExerciseType.fehlend:
+      return _fehlend();
+    case ExerciseType.kette:
+      return _kette();
+    case ExerciseType.korrektFalsch:
+      return _korrektFalsch();
     case ExerciseType.nachbar:
       return _nachbar();
     case ExerciseType.folge:
@@ -36,29 +71,121 @@ Exercise generateExercise(ExerciseType type) {
   }
 }
 
-/// Plus- oder Minusaufgabe im Zahlenraum bis 20.
-Exercise _plusMinus() {
+/// Zufällige Plus- oder Minus-Zahlen im Zahlenraum bis 20 (Ergebnis >= 1).
+(int a, int b, int result, String op) _randomPlusMinus() {
   if (_rng.nextBool()) {
     final a = _rng.nextInt(19) + 1; // 1..19
-    final b = _rng.nextInt(20 - a) + 1; // Summe <= 20
-    return Exercise(question: '$a + $b = ?', answer: a + b);
+    final bb = _rng.nextInt(20 - a) + 1; // Summe <= 20
+    return (a, bb, a + bb, '+');
   } else {
     final a = _rng.nextInt(19) + 2; // 2..20
-    final b = _rng.nextInt(a - 1) + 1; // Ergebnis >= 1
-    return Exercise(question: '$a − $b = ?', answer: a - b);
+    final bb = _rng.nextInt(a - 1) + 1; // Ergebnis >= 1
+    return (a, bb, a - bb, '−');
   }
 }
 
-/// Addition mit Zehnerübergang: a + b mit a < 10 und a + b > 10.
-Exercise _zehner() {
-  final a = _rng.nextInt(4) + 6; // 6..9
-  final toTen = 10 - a;
-  final b = toTen + _rng.nextInt(9 - toTen) + 1; // kreuzt die 10, Summe <= 19
-  final rest = b - toTen;
+Exercise _plusMinus() {
+  final (a, bb, result, op) = _randomPlusMinus();
   return Exercise(
-    question: '$a + $b = ?',
-    answer: a + b,
-    hint: 'Rechne bis 10 und dann weiter:\n$a + $toTen = 10 und 10 + $rest = ${10 + rest}',
+    lines: [
+      [t('$a'), t(op), t('$bb'), t('='), b(0)]
+    ],
+    answers: [result],
+  );
+}
+
+/// Zehnerübergang mit Zerlegung zum Ausfüllen, Plus und Minus:
+///   7 + 9 = [16]          13 − 7 = [6]
+///   7 + [3] + [6] = [16]  13 − [3] − [4] = [6]
+Exercise _zehner() {
+  if (_rng.nextBool()) {
+    final a = _rng.nextInt(4) + 6; // 6..9
+    final toTen = 10 - a;
+    final bb = toTen + _rng.nextInt(9 - toTen) + 1; // kreuzt die 10, Summe <= 19
+    final rest = bb - toTen;
+    return Exercise(
+      lines: [
+        [t('$a'), t('+'), t('$bb'), t('='), b(0)],
+        [t('$a'), t('+'), b(1), t('+'), b(2), t('='), b(3)],
+      ],
+      answers: [a + bb, toTen, rest, a + bb],
+    );
+  } else {
+    final a = _rng.nextInt(8) + 11; // 11..18
+    final toTen = a - 10; // erst bis zur 10 abziehen
+    final bb = toTen + _rng.nextInt(9 - toTen) + 1; // kreuzt die 10 nach unten
+    final rest = bb - toTen;
+    return Exercise(
+      lines: [
+        [t('$a'), t('−'), t('$bb'), t('='), b(0)],
+        [t('$a'), t('−'), b(1), t('−'), b(2), t('='), b(3)],
+      ],
+      answers: [a - bb, toTen, rest, a - bb],
+    );
+  }
+}
+
+/// Fehlende Zahl in der Gleichung: 4 + [_] = 12, [_] + 5 = 11, 13 − [_] = 9 ...
+Exercise _fehlend() {
+  final (a, bb, result, op) = _randomPlusMinus();
+  final missingFirst = _rng.nextBool();
+  return Exercise(
+    lines: [
+      [
+        missingFirst ? b(0) : t('$a'),
+        t(op),
+        missingFirst ? t('$bb') : b(0),
+        t('='),
+        t('$result'),
+      ]
+    ],
+    answers: [missingFirst ? a : bb],
+  );
+}
+
+/// Kettenaufgabe: 2 + 2 + 1 + 4 + 3 = [_]
+Exercise _kette() {
+  final count = _rng.nextInt(2) + 4; // 4 oder 5 Zahlen
+  final numbers = <int>[];
+  var sum = 0;
+  for (var i = 0; i < count; i++) {
+    final maxNext = min(6, 20 - sum - (count - i - 1));
+    final n = _rng.nextInt(maxNext) + 1;
+    numbers.add(n);
+    sum += n;
+  }
+  return Exercise(
+    lines: [
+      [
+        for (var i = 0; i < numbers.length; i++) ...[
+          if (i > 0) t('+'),
+          t('${numbers[i]}'),
+        ],
+        t('='),
+        b(0),
+      ]
+    ],
+    answers: [sum],
+  );
+}
+
+/// Korrekt oder falsch: "5 + 10 = 14"?
+Exercise _korrektFalsch() {
+  final (a, bb, result, op) = _randomPlusMinus();
+  final isTrue = _rng.nextBool();
+  var shown = result;
+  if (!isTrue) {
+    while (shown == result) {
+      shown = max(0, result + _rng.nextInt(7) - 3);
+    }
+  }
+  return Exercise(
+    prompt: 'Ist diese Rechnung korrekt?',
+    lines: [
+      [t('$a'), t(op), t('$bb'), t('='), t('$shown')]
+    ],
+    isTrue: isTrue,
+    solution: 'Richtig ist: $a $op $bb = $result',
   );
 }
 
@@ -67,11 +194,21 @@ Exercise _nachbar() {
   if (_rng.nextBool()) {
     final n = _rng.nextInt(19) + 1; // 1..19
     return Exercise(
-        question: 'Welche Zahl kommt direkt nach $n?', answer: n + 1);
+      prompt: 'Welche Zahl kommt direkt nach $n?',
+      lines: [
+        [b(0)]
+      ],
+      answers: [n + 1],
+    );
   } else {
     final n = _rng.nextInt(19) + 2; // 2..20
     return Exercise(
-        question: 'Welche Zahl kommt direkt vor $n?', answer: n - 1);
+      prompt: 'Welche Zahl kommt direkt vor $n?',
+      lines: [
+        [b(0)]
+      ],
+      answers: [n - 1],
+    );
   }
 }
 
@@ -81,11 +218,14 @@ Exercise _folge() {
   final start = _rng.nextInt(20 - 4 * step) + 1;
   final numbers = List.generate(5, (i) => start + i * step);
   final missing = _rng.nextInt(5);
-  final shown = [
-    for (var i = 0; i < 5; i++) i == missing ? '★' : '${numbers[i]}'
-  ].join('  ');
   return Exercise(
-    question: 'Welche Zahl gehört auf den Stern?\n$shown',
-    answer: numbers[missing],
+    prompt: 'Welche Zahl fehlt in der Reihe?',
+    lines: [
+      [
+        for (var i = 0; i < 5; i++)
+          i == missing ? b(0) : t('${numbers[i]}'),
+      ]
+    ],
+    answers: [numbers[missing]],
   );
 }
