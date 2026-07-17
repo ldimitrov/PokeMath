@@ -1,9 +1,12 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
 import '../data/pokedex.dart';
 import '../db/database_helper.dart';
 import '../logic/exercise_generator.dart';
 import '../models/models.dart';
+import '../widgets/category_style.dart';
+import '../widgets/fancy_progress.dart';
 import '../widgets/numpad.dart';
 import '../widgets/pokemon_image.dart';
 
@@ -50,9 +53,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _newExercise() {
-    _exercise = widget.exerciseFactory?.call() ??
-        generateExercise(widget.type,
-            progress: (_questionNr - 1) / questionsPerRound);
+    _exercise =
+        widget.exerciseFactory?.call() ??
+        generateExercise(
+          widget.type,
+          progress: (_questionNr - 1) / questionsPerRound,
+        );
     _inputs = List.filled(_exercise.answers.length, '');
     _active = 0;
     _wrong = {};
@@ -218,7 +224,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.type.title),
+          backgroundColor: widget.type.tileColor,
+          foregroundColor: widget.type.color,
+          title: Text(
+            widget.type.title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           actions: [
             Center(
               child: Padding(
@@ -239,10 +250,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                LinearProgressIndicator(
+                FancyProgressBar(
                   value: (_questionNr - 1) / questionsPerRound,
-                  minHeight: 10,
-                  borderRadius: BorderRadius.circular(6),
+                  colors: [
+                    widget.type.color.withValues(alpha: 0.55),
+                    widget.type.color,
+                  ],
+                  height: 12,
                 ),
                 const SizedBox(height: 4),
                 Text('Aufgabe $_questionNr von $questionsPerRound'),
@@ -410,9 +424,33 @@ class _BlankBox extends StatelessWidget {
   }
 }
 
-class _SummaryView extends StatelessWidget {
+class _SummaryView extends StatefulWidget {
   final _ExerciseScreenState state;
   const _SummaryView({required this.state});
+
+  @override
+  State<_SummaryView> createState() => _SummaryViewState();
+}
+
+class _SummaryViewState extends State<_SummaryView> {
+  late final ConfettiController _confetti;
+
+  _ExerciseScreenState get state => widget.state;
+
+  @override
+  void initState() {
+    super.initState();
+    _confetti = ConfettiController(
+      duration: const Duration(milliseconds: 1800),
+    );
+    if (state._correctCount >= 5) _confetti.play();
+  }
+
+  @override
+  void dispose() {
+    _confetti.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -421,57 +459,81 @@ class _SummaryView extends StatelessWidget {
     final gotBall = profile.pokeballs > 0;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                state._correctCount >= 8
-                    ? 'Fantastisch! 🏆'
-                    : state._correctCount >= 5
-                    ? 'Gut gemacht! 🎉'
-                    : 'Weiter üben! 💪',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '${state._correctCount} von $questionsPerRound richtig\n'
-                '⭐ ${state._roundPoints} Punkte verdient'
-                '${active != null ? '\n⚡ ${state._roundPoints ~/ 2} Energie für ${speciesById(active.speciesId).name}' : ''}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, height: 1.6),
-              ),
-              if (active != null) ...[
-                const SizedBox(height: 16),
-                Center(
-                  child: PokemonImage(speciesId: active.speciesId, size: 120),
-                ),
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            ConfettiWidget(
+              confettiController: _confetti,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: state._correctCount >= 8 ? 40 : 20,
+              maxBlastForce: 25,
+              minBlastForce: 8,
+              gravity: 0.25,
+              shouldLoop: false,
+              colors: const [
+                Color(0xFFEE1515),
+                Color(0xFFFFC107),
+                Color(0xFF1E88E5),
+                Color(0xFF43A047),
+                Color(0xFF8E24AA),
               ],
-              if (gotBall) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Du hast einen Pokéball verdient! 🎊',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepOrange,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    state._correctCount >= 8
+                        ? 'Fantastisch! 🏆'
+                        : state._correctCount >= 5
+                        ? 'Gut gemacht! 🎉'
+                        : 'Weiter üben! 💪',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(gotBall ? 'Zum Pokéball!' : 'Weiter'),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${state._correctCount} von $questionsPerRound richtig\n'
+                    '⭐ ${state._roundPoints} Punkte verdient'
+                    '${active != null ? '\n⚡ ${state._roundPoints ~/ 2} Energie für ${speciesById(active.speciesId).name}' : ''}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 20, height: 1.6),
+                  ),
+                  if (active != null) ...[
+                    const SizedBox(height: 16),
+                    Center(
+                      child: PokemonImage(
+                        speciesId: active.speciesId,
+                        size: 120,
+                      ),
+                    ),
+                  ],
+                  if (gotBall) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Du hast einen Pokéball verdient! 🎊',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(gotBall ? 'Zum Pokéball!' : 'Weiter'),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
