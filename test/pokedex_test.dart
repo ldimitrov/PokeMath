@@ -63,6 +63,33 @@ void main() {
       }
     });
 
+    test('jedes Pokémon hat mindestens einen Typ', () {
+      for (final s in pokedex) {
+        expect(s.types, isNotEmpty, reason: s.name);
+      }
+      // Stichproben.
+      expect(speciesById(6).types, [PokeType.feuer, PokeType.flug]);
+      expect(speciesById(25).types, [PokeType.elektro]);
+      expect(speciesById(150).types, [PokeType.psycho]);
+    });
+
+    test('Entwicklungen behalten den Grundtyp der Familie', () {
+      // Erste Stufe und Entwicklung teilen mindestens einen Typ —
+      // Ausnahme Evoli, dessen Entwicklungen den Typ wechseln.
+      for (final s in pokedex) {
+        if (s.id == 133) continue;
+        for (final target in s.evolvesTo) {
+          expect(
+              speciesById(target)
+                  .types
+                  .toSet()
+                  .intersection(s.types.toSet()),
+              isNotEmpty,
+              reason: '${s.name} → ${speciesById(target).name}');
+        }
+      }
+    });
+
     test('evolutionChain findet die ganze Familie von jeder Stufe aus', () {
       // Von der Mitte der Glumanda-Familie aus.
       final glumanda = evolutionChain(5);

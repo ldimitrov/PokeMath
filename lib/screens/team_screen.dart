@@ -108,6 +108,15 @@ class _TeamScreenState extends State<TeamScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
+              const SizedBox(height: 8),
+              Center(
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final type in species.types) _TypeBadge(type: type),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               Text(
                 species.description,
@@ -274,6 +283,30 @@ class _TeamScreenState extends State<TeamScreen> {
                   );
                 },
               ),
+      ),
+    );
+  }
+}
+
+class _TypeBadge extends StatelessWidget {
+  final PokeType type;
+  const _TypeBadge({required this.type});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      decoration: BoxDecoration(
+        color: type.color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        type.label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
