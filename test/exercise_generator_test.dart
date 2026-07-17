@@ -29,9 +29,20 @@ void main() {
       }
     });
 
+    test('Zehnerübergang: erst Plus, am Ende der Runde Minus', () {
+      for (var i = 0; i < 200; i++) {
+        // Anfang der Runde: nur Plus; Ende der Runde: nur Minus.
+        expect(generateExercise(ExerciseType.zehner, progress: 0)
+            .lines[0][1].text, '+');
+        expect(generateExercise(ExerciseType.zehner, progress: 0.9)
+            .lines[0][1].text, '−');
+      }
+    });
+
     test('Zehnerübergang: Zerlegung über die 10 stimmt', () {
       for (var i = 0; i < 500; i++) {
-        final e = generateExercise(ExerciseType.zehner);
+        final e = generateExercise(ExerciseType.zehner,
+            progress: i.isEven ? 0.0 : 0.9);
         expect(e.answers.length, 4);
         expect(e.lines.length, 2);
         for (final line in e.lines) {

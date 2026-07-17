@@ -52,12 +52,14 @@ class Exercise {
 
 final _rng = Random();
 
-Exercise generateExercise(ExerciseType type) {
+/// [progress] ist der Fortschritt in der Runde (0.0 bis 1.0). Der
+/// Zehnerübergang beginnt mit Plus und wechselt am Ende zu Minus.
+Exercise generateExercise(ExerciseType type, {double progress = 0}) {
   switch (type) {
     case ExerciseType.plusMinus:
       return _plusMinus();
     case ExerciseType.zehner:
-      return _zehner();
+      return _zehner(plus: progress < 0.7);
     case ExerciseType.fehlend:
       return _fehlend();
     case ExerciseType.kette:
@@ -97,8 +99,8 @@ Exercise _plusMinus() {
 /// Zehnerübergang mit Zerlegung zum Ausfüllen, Plus und Minus:
 ///   7 + 9 = [16]          13 − 7 = [6]
 ///   7 + [3] + [6] = [16]  13 − [3] − [4] = [6]
-Exercise _zehner() {
-  if (_rng.nextBool()) {
+Exercise _zehner({required bool plus}) {
+  if (plus) {
     final a = _rng.nextInt(4) + 6; // 6..9
     final toTen = 10 - a;
     final bb = toTen + _rng.nextInt(9 - toTen) + 1; // kreuzt die 10, Summe <= 19

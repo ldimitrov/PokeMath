@@ -50,8 +50,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _newExercise() {
-    _exercise =
-        widget.exerciseFactory?.call() ?? generateExercise(widget.type);
+    _exercise = widget.exerciseFactory?.call() ??
+        generateExercise(widget.type,
+            progress: (_questionNr - 1) / questionsPerRound);
     _inputs = List.filled(_exercise.answers.length, '');
     _active = 0;
     _wrong = {};
