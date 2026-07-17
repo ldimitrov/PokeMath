@@ -72,19 +72,55 @@ void main() {
       }
     });
 
-    test('Kettenaufgaben: 4-5 Zahlen, Summe stimmt und bleibt <= 20', () {
+    test('Kettenaufgaben: werden über die Runde länger (3 → 4 → 5 Zahlen)',
+        () {
+      for (final (progress, expectedCount) in [(0.0, 3), (0.4, 4), (0.65, 5)]) {
+        for (var i = 0; i < 300; i++) {
+          final e =
+              generateExercise(ExerciseType.kette, progress: progress);
+          final numbers = [
+            for (final tok in e.lines.single)
+              if (!tok.isBlank && int.tryParse(tok.text!) != null)
+                int.parse(tok.text!)
+          ];
+          expect(numbers.length, expectedCount, reason: 'progress $progress');
+          expect(numbers.every((n) => n >= 1), isTrue);
+          expect(e.lines.single.any((tok) => tok.text == '−'), isFalse,
+              reason: 'vor dem Rundenende nur Plus');
+          final (lhs, rhs) = evalLine(e.lines.single, e.answers);
+          expect(lhs, rhs);
+          expect(e.answers[0], lessThanOrEqualTo(20));
+        }
+      }
+    });
+
+    test('Kettenaufgaben am Rundenende: Plus und Minus gemischt, Zwischen'
+        'ergebnisse bleiben in 0..20', () {
       for (var i = 0; i < 500; i++) {
-        final e = generateExercise(ExerciseType.kette);
-        final numbers = [
-          for (final tok in e.lines.single)
-            if (!tok.isBlank && int.tryParse(tok.text!) != null)
-              int.parse(tok.text!)
+        final e = generateExercise(ExerciseType.kette, progress: 0.9);
+        final line = e.lines.single;
+        final ops = [
+          for (final tok in line)
+            if (tok.text == '+' || tok.text == '−') tok.text
         ];
-        expect(numbers.length, inInclusiveRange(4, 5));
-        expect(numbers.every((n) => n >= 1), isTrue);
-        final (lhs, rhs) = evalLine(e.lines.single, e.answers);
+        expect(ops.length, 4); // 5 Zahlen
+        expect(ops, contains('+'));
+        expect(ops, contains('−'));
+        final (lhs, rhs) = evalLine(line, e.answers);
         expect(lhs, rhs);
-        expect(e.answers[0], lessThanOrEqualTo(20));
+        // Zwischenergebnisse Schritt für Schritt prüfen.
+        final parts = [
+          for (final tok in line.takeWhile((tok) => tok.text != '='))
+            tok.text!
+        ];
+        var value = int.parse(parts[0]);
+        for (var j = 1; j < parts.length; j += 2) {
+          value = parts[j] == '+'
+              ? value + int.parse(parts[j + 1])
+              : value - int.parse(parts[j + 1]);
+          expect(value, inInclusiveRange(0, 20));
+        }
+        expect(value, e.answers[0]);
       }
     });
 

@@ -63,7 +63,7 @@ Exercise generateExercise(ExerciseType type, {double progress = 0}) {
     case ExerciseType.fehlend:
       return _fehlend();
     case ExerciseType.kette:
-      return _kette();
+      return _kette(progress: progress);
     case ExerciseType.korrektFalsch:
       return _korrektFalsch();
     case ExerciseType.nachbar:
@@ -145,30 +145,67 @@ Exercise _fehlend() {
   );
 }
 
-/// Kettenaufgabe: 2 + 2 + 1 + 4 + 3 = [_]
-Exercise _kette() {
-  final count = _rng.nextInt(2) + 4; // 4 oder 5 Zahlen
-  final numbers = <int>[];
-  var sum = 0;
-  for (var i = 0; i < count; i++) {
-    final maxNext = min(6, 20 - sum - (count - i - 1));
-    final n = _rng.nextInt(maxNext) + 1;
-    numbers.add(n);
-    sum += n;
+/// Kettenaufgabe mit steigender Schwierigkeit über die Runde:
+/// erst 3 Zahlen, dann 4, dann 5 — und am Ende gemischt mit Plus und Minus
+/// (z.B. 8 + 5 − 3 + 2 − 4 = [_]).
+Exercise _kette({required double progress}) {
+  final count = progress < 0.3
+      ? 3
+      : progress < 0.6
+          ? 4
+          : 5;
+  final mixed = progress >= 0.8;
+
+  if (!mixed) {
+    final numbers = <int>[];
+    var sum = 0;
+    for (var i = 0; i < count; i++) {
+      final maxNext = min(6, 20 - sum - (count - i - 1));
+      final n = _rng.nextInt(maxNext) + 1;
+      numbers.add(n);
+      sum += n;
+    }
+    return Exercise(
+      lines: [
+        [
+          for (var i = 0; i < numbers.length; i++) ...[
+            if (i > 0) t('+'),
+            t('${numbers[i]}'),
+          ],
+          t('='),
+          b(0),
+        ]
+      ],
+      answers: [sum],
+    );
   }
-  return Exercise(
-    lines: [
-      [
-        for (var i = 0; i < numbers.length; i++) ...[
-          if (i > 0) t('+'),
-          t('${numbers[i]}'),
-        ],
-        t('='),
-        b(0),
-      ]
-    ],
-    answers: [sum],
-  );
+
+  // Gemischte Kette: Zwischenergebnisse bleiben in 0..20,
+  // Plus und Minus kommen beide mindestens einmal vor.
+  while (true) {
+    final tokens = <Token>[];
+    var value = _rng.nextInt(10) + 1;
+    tokens.add(t('$value'));
+    var hasPlus = false, hasMinus = false;
+    for (var i = 1; i < count; i++) {
+      final canPlus = value <= 19;
+      final canMinus = value >= 1;
+      final plus = canPlus && canMinus ? _rng.nextBool() : canPlus;
+      final n = plus
+          ? _rng.nextInt(min(6, 20 - value)) + 1
+          : _rng.nextInt(min(6, value)) + 1;
+      plus ? hasPlus = true : hasMinus = true;
+      value += plus ? n : -n;
+      tokens
+        ..add(t(plus ? '+' : '−'))
+        ..add(t('$n'));
+    }
+    if (!hasPlus || !hasMinus) continue;
+    tokens
+      ..add(t('='))
+      ..add(b(0));
+    return Exercise(lines: [tokens], answers: [value]);
+  }
 }
 
 /// Korrekt oder falsch: "5 + 10 = 14"?
