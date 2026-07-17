@@ -1,4 +1,4 @@
-/// Statische Pokédex-Daten. Die Bild-Dateien liegen unter assets/pokemon/<id>.png.
+/// Statische Pokédex-Daten. Die Bild-Dateien liegen unter `assets/pokemon/<id>.png`.
 class Species {
   final int id; // Nationaldex-Nummer = Dateiname des Bildes
   final String name; // deutscher Name
