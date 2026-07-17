@@ -22,6 +22,34 @@ flutter build apk --release   # Android-APK für das eigene Handy
 
 Unterstützte Plattformen: Android (primär), iOS, macOS.
 
+## Neue Pokémon hinzufügen
+
+Die Pokémon-Daten (Name, Typen, Beschreibung, Entwicklungen, Fang-Gewicht)
+liegen statisch in `lib/data/pokedex.dart` — die App braucht zur Laufzeit
+keine Internetverbindung. Neue Einträge generiert man mit dem Dev-Skript,
+das Name, Typen und einen Beschreibungs-Vorschlag (Deutsch) von
+[PokeAPI](https://pokeapi.co) holt:
+
+```sh
+dart run tool/fetch_pokemon_data.dart 54 104 151   # Nationaldex-Nummern
+```
+
+Der Ablauf:
+
+1. Skript ausführen und die ausgegebenen `Species(...)`-Einträge in die
+   `pokedex`-Liste in `lib/data/pokedex.dart` einfügen.
+2. Beschreibung kindgerecht umformulieren (der PokeAPI-Text ist nur ein
+   Vorschlag), `catchWeight` festlegen (0 = nur per Entwicklung erhältlich)
+   und ggf. `evolvesTo`/`evolvesAtEnergy` setzen.
+3. Die neuen IDs in `tool/fetch_sprites.sh` ergänzen und das Skript
+   ausführen, damit die Bilder lokal landen.
+4. `flutter test` — die Pokédex-Tests prüfen automatisch, dass jeder neue
+   Eintrag Typen, Beschreibung, gültige Entwicklungsziele und ein Bild hat.
+
+Alle 18 Typen (`PokeType`) sind bereits mit deutschen Namen und Farben
+angelegt; Entwicklungen sollen mindestens einen Typ mit ihrer Vorstufe
+teilen (Ausnahme: Evoli).
+
 ## Spielprinzip
 
 - Profile pro Kind, Fortschritt wird lokal in SQLite gespeichert (sqflite).
