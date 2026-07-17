@@ -4,6 +4,8 @@ import '../data/pokedex.dart';
 import '../db/database_helper.dart';
 import '../logic/exercise_generator.dart';
 import '../models/models.dart';
+import '../widgets/category_style.dart';
+import '../widgets/fancy_progress.dart';
 import '../widgets/pokemon_image.dart';
 import 'catch_screen.dart';
 import 'exercise_screen.dart';
@@ -149,13 +151,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: profile.ballProgress / 100,
-                        minHeight: 14,
-                        backgroundColor: scheme.surface,
-                      ),
+                    FancyProgressBar(
+                      value: profile.ballProgress / 100,
+                      colors: const [Color(0xFFFF7043), Color(0xFFEE1515)],
                     ),
                     const SizedBox(height: 4),
                     Text('${profile.ballProgress} / 100 Punkte'),
@@ -191,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 for (final type in ExerciseType.values)
                   Material(
-                    color: scheme.secondaryContainer,
+                    color: type.tileColor,
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(20),
@@ -206,9 +204,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 8),
                             Text(type.title,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 17,
-                                    fontWeight: FontWeight.bold)),
+                                    fontWeight: FontWeight.bold,
+                                    color: type.color)),
                             const SizedBox(height: 4),
                             Text(type.subtitle,
                                 textAlign: TextAlign.center,
@@ -248,15 +247,10 @@ class _EnergyBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: (pokemon.energy / target).clamp(0.0, 1.0),
-            minHeight: 10,
-            color: Colors.amber,
-            backgroundColor:
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
+        FancyProgressBar(
+          value: (pokemon.energy / target).clamp(0.0, 1.0),
+          colors: const [Color(0xFFFFD54F), Color(0xFFFFA000)],
+          height: 12,
         ),
         const SizedBox(height: 2),
         Text('⚡ ${pokemon.energy} / $target bis zur Entwicklung',
