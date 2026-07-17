@@ -57,6 +57,32 @@ void main() {
       expect(drawn[150]!, lessThan(300));
     });
 
+    test('jedes Pokémon hat eine Beschreibung', () {
+      for (final s in pokedex) {
+        expect(s.description.trim(), isNotEmpty, reason: s.name);
+      }
+    });
+
+    test('evolutionChain findet die ganze Familie von jeder Stufe aus', () {
+      // Von der Mitte der Glumanda-Familie aus.
+      final glumanda = evolutionChain(5);
+      expect(glumanda.map((l) => l.map((s) => s.id).toList()).toList(), [
+        [4],
+        [5],
+        [6],
+      ]);
+      // Auch von der letzten Stufe aus dieselbe Kette.
+      expect(evolutionChain(6).first.single.id, 4);
+      // Evoli verzweigt sich in drei Entwicklungen.
+      final evoli = evolutionChain(134);
+      expect(evoli.first.single.id, 133);
+      expect(evoli.last.map((s) => s.id), containsAll([134, 135, 136]));
+      // Relaxo hat keine Entwicklung.
+      expect(evolutionChain(143), [
+        [speciesById(143)]
+      ]);
+    });
+
     test('für jedes Pokémon liegt ein Bild in assets/pokemon', () {
       for (final s in pokedex) {
         expect(File('assets/pokemon/${s.id}.png').existsSync(), isTrue,
