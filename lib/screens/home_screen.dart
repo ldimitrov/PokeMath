@@ -187,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.15,
+              childAspectRatio: 0.95,
               children: [
                 for (final type in ExerciseType.values)
                   Material(
@@ -202,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(type.emoji,
-                                style: const TextStyle(fontSize: 40)),
+                                style: const TextStyle(fontSize: 34)),
                             const SizedBox(height: 8),
                             Text(type.title,
                                 textAlign: TextAlign.center,
