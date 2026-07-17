@@ -7,7 +7,7 @@ enum ExerciseType {
   fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
   kette('Kettenaufgaben', 'Rechne die ganze Kette', '🔗'),
   korrektFalsch('Korrekt oder falsch?', 'Stimmt die Rechnung?', '⚖️'),
-  nachbar('Nachbarzahlen', 'Welche Zahl kommt davor oder danach?', '🔢'),
+  nachbar('Nachbarzahlen', 'Finde die Nachbarn!', '🏠'),
   folge('Zahlenfolgen', 'Welche Zahl fehlt in der Reihe?', '➡️');
 
   final String title;
@@ -189,25 +189,47 @@ Exercise _korrektFalsch() {
   );
 }
 
-/// Vorgänger oder Nachfolger einer Zahl.
+/// Zwei Formate:
+///  - Nachbarzahlen-Häuser: drei aufeinanderfolgende Zahlen, eine vorgegeben,
+///    die beiden anderen werden eingetragen (z.B. [8] 9 [10]).
+///  - Nachbaraufgaben: drei verwandte Plusaufgaben, bei denen sich eine Zahl
+///    jeweils um 1 unterscheidet (z.B. 4+2, 4+3, 4+4).
 Exercise _nachbar() {
   if (_rng.nextBool()) {
-    final n = _rng.nextInt(19) + 1; // 1..19
+    final middle = _rng.nextInt(19) + 1; // Tripel bleibt in 0..20
+    final given = _rng.nextInt(3);
+    final values = [middle - 1, middle, middle + 1];
+    final tokens = <Token>[];
+    final answers = <int>[];
+    for (var i = 0; i < 3; i++) {
+      if (i == given) {
+        tokens.add(t('${values[i]}'));
+      } else {
+        tokens.add(b(answers.length));
+        answers.add(values[i]);
+      }
+    }
     return Exercise(
-      prompt: 'Welche Zahl kommt direkt nach $n?',
-      lines: [
-        [b(0)]
-      ],
-      answers: [n + 1],
+      prompt: 'Wie heißen die Nachbarzahlen? 🏠🏠🏠',
+      lines: [tokens],
+      answers: answers,
     );
   } else {
-    final n = _rng.nextInt(19) + 2; // 2..20
+    final varyFirst = _rng.nextBool();
+    final fixed = _rng.nextInt(9) + 1; // 1..9
+    final base = _rng.nextInt(min(9, 19 - fixed) - 1) + 2; // 2.., Summe+1 <= 20
+    final lines = <List<Token>>[];
+    final answers = <int>[];
+    for (var i = -1; i <= 1; i++) {
+      final a = varyFirst ? base + i : fixed;
+      final bb = varyFirst ? fixed : base + i;
+      lines.add([t('$a'), t('+'), t('$bb'), t('='), b(answers.length)]);
+      answers.add(a + bb);
+    }
     return Exercise(
-      prompt: 'Welche Zahl kommt direkt vor $n?',
-      lines: [
-        [b(0)]
-      ],
-      answers: [n - 1],
+      prompt: 'Rechne die Nachbaraufgaben!',
+      lines: lines,
+      answers: answers,
     );
   }
 }

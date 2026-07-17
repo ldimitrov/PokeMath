@@ -89,14 +89,39 @@ void main() {
       expect(seenTrue && seenFalse, isTrue);
     });
 
-    test('Nachbarzahlen: Antwort ist Vorgänger oder Nachfolger', () {
+    test('Nachbarzahlen: Häuser-Tripel oder drei Nachbaraufgaben', () {
+      var seenHaus = false, seenAufgaben = false;
       for (var i = 0; i < 500; i++) {
         final e = generateExercise(ExerciseType.nachbar);
-        final n =
-            int.parse(RegExp(r'(\d+)\?').firstMatch(e.prompt!)!.group(1)!);
-        expect(e.answers[0], e.prompt!.contains('nach') ? n + 1 : n - 1);
-        expect(e.answers[0], inInclusiveRange(1, 20));
+        if (e.lines.length == 1) {
+          // Häuser: drei aufeinanderfolgende Zahlen, eine vorgegeben.
+          seenHaus = true;
+          expect(e.answers.length, 2);
+          final values = [
+            for (final tok in e.lines.single)
+              tok.isBlank ? e.answers[tok.blank!] : int.parse(tok.text!)
+          ];
+          expect(values.length, 3);
+          expect(values[1], values[0] + 1);
+          expect(values[2], values[1] + 1);
+          expect(values[0], greaterThanOrEqualTo(0));
+          expect(values[2], lessThanOrEqualTo(20));
+        } else {
+          // Nachbaraufgaben: drei Plusaufgaben, Ergebnis steigt um 1.
+          seenAufgaben = true;
+          expect(e.lines.length, 3);
+          expect(e.answers.length, 3);
+          for (final line in e.lines) {
+            final (lhs, rhs) = evalLine(line, e.answers);
+            expect(lhs, rhs);
+          }
+          expect(e.answers[1], e.answers[0] + 1);
+          expect(e.answers[2], e.answers[1] + 1);
+          expect(e.answers[2], lessThanOrEqualTo(20));
+          expect(e.answers[0], greaterThanOrEqualTo(2));
+        }
       }
+      expect(seenHaus && seenAufgaben, isTrue);
     });
 
     test('Zahlenfolgen: fehlende Zahl passt in die Reihe, alles <= 20', () {
