@@ -20,13 +20,16 @@ class PokeMathApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFEE1515), // Pokéball-Rot
         ),
+        fontFamily: 'Fredoka',
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            textStyle:
-                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textStyle: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Fredoka'),
           ),
         ),
       ),

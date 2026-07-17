@@ -37,6 +37,7 @@ dependencies:
   sqflite: ^2.4.2+1
   path: ^1.9.1
   path_provider: ^2.1.6
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,15 @@ flutter:
 
   assets:
     - assets/pokemon/
+
+  fonts:
+    - family: Fredoka
+      fonts:
+        - asset: assets/fonts/Fredoka-Regular.ttf
+        - asset: assets/fonts/Fredoka-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Fredoka-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
