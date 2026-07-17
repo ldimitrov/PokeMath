@@ -91,6 +91,7 @@ void main() {
 
     test('Nachbarzahlen: Häuser-Tripel oder drei Nachbaraufgaben', () {
       var seenHaus = false, seenAufgaben = false;
+      var seenErgebnis = false, seenZahl = false, seenTricky = false;
       for (var i = 0; i < 500; i++) {
         final e = generateExercise(ExerciseType.nachbar);
         if (e.lines.length == 1) {
@@ -110,18 +111,35 @@ void main() {
           // Nachbaraufgaben: drei Plusaufgaben, Ergebnis steigt um 1.
           seenAufgaben = true;
           expect(e.lines.length, 3);
-          expect(e.answers.length, 3);
+          final results = <int>[];
           for (final line in e.lines) {
             final (lhs, rhs) = evalLine(line, e.answers);
             expect(lhs, rhs);
+            results.add(lhs);
           }
-          expect(e.answers[1], e.answers[0] + 1);
-          expect(e.answers[2], e.answers[1] + 1);
-          expect(e.answers[2], lessThanOrEqualTo(20));
-          expect(e.answers[0], greaterThanOrEqualTo(2));
+          expect(results[1], results[0] + 1);
+          expect(results[2], results[1] + 1);
+          expect(results[2], lessThanOrEqualTo(20));
+          expect(results[0], greaterThanOrEqualTo(2));
+          // Ausfüll-Varianten: Ergebnisse (3 Lücken rechts), wechselnde Zahl
+          // (3 Lücken links, Ergebnisse sichtbar) oder tricky (4 Lücken).
+          if (e.answers.length == 4) {
+            seenTricky = true;
+            // Mittlere Zeile hat zwei Lücken.
+            expect(e.lines[1].where((tok) => tok.isBlank).length, 2);
+          } else {
+            expect(e.answers.length, 3);
+            if (e.lines[0].last.isBlank) {
+              seenErgebnis = true;
+            } else {
+              seenZahl = true;
+            }
+          }
         }
       }
       expect(seenHaus && seenAufgaben, isTrue);
+      expect(seenErgebnis && seenZahl && seenTricky, isTrue,
+          reason: 'alle drei Ausfüll-Varianten sollen vorkommen');
     });
 
     test('Zahlenfolgen: fehlende Zahl passt in die Reihe, alles <= 20', () {

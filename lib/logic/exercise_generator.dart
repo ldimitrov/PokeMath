@@ -218,13 +218,31 @@ Exercise _nachbar() {
     final varyFirst = _rng.nextBool();
     final fixed = _rng.nextInt(9) + 1; // 1..9
     final base = _rng.nextInt(min(9, 19 - fixed) - 1) + 2; // 2.., Summe+1 <= 20
+    // Was wird ausgefüllt? 0: die Ergebnisse, 1: die wechselnde Zahl,
+    // 2: die wechselnde Zahl und in der Mitte zusätzlich das Ergebnis.
+    final mode = _rng.nextInt(3);
     final lines = <List<Token>>[];
     final answers = <int>[];
+
+    Token cell(int value, bool blank) {
+      if (!blank) return t('$value');
+      answers.add(value);
+      return b(answers.length - 1);
+    }
+
     for (var i = -1; i <= 1; i++) {
-      final a = varyFirst ? base + i : fixed;
-      final bb = varyFirst ? fixed : base + i;
-      lines.add([t('$a'), t('+'), t('$bb'), t('='), b(answers.length)]);
-      answers.add(a + bb);
+      final vary = base + i;
+      final a = varyFirst ? vary : fixed;
+      final bb = varyFirst ? fixed : vary;
+      final blankVary = mode >= 1;
+      final blankResult = mode == 0 || (mode == 2 && i == 0);
+      lines.add([
+        cell(a, blankVary && varyFirst),
+        t('+'),
+        cell(bb, blankVary && !varyFirst),
+        t('='),
+        cell(a + bb, blankResult),
+      ]);
     }
     return Exercise(
       prompt: 'Rechne die Nachbaraufgaben!',
