@@ -289,7 +289,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                               sum: _exercise.houseSum!,
                               floors: [
                                 for (final line in _exercise.lines)
-                                  _buildLine(line),
+                                  _buildLine(line, windowed: true),
                               ],
                             )
                           else
@@ -339,7 +339,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     );
   }
 
-  Widget _buildLine(List<Token> line) {
+  /// [windowed]: feste Zahlen bekommen ebenfalls einen Kasten (Fenster im
+  /// Zahlenhaus), damit "2 1" nicht wie "21" aussieht.
+  Widget _buildLine(List<Token> line, {bool windowed = false}) {
     return Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -357,6 +359,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               onTap: _locked
                   ? null
                   : () => setState(() => _active = token.blank!),
+            )
+          else if (windowed)
+            Container(
+              width: 62,
+              height: 54,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFD7B58C), width: 2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                token.text!,
+                style: const TextStyle(
+                    fontSize: 26, fontWeight: FontWeight.bold),
+              ),
             )
           else
             Text(
