@@ -42,8 +42,8 @@ void main() {
         expect(e.dots, isNotNull);
         expect(e.dots, inInclusiveRange(1, 9));
         expect(e.answers.single, 10 - e.dots!);
-        final (lhs, rhs) = evalLine(e.lines.single, e.answers);
-        expect(lhs, rhs);
+        // Nur ein Eingabefeld, keine sichtbare Rechenzeile.
+        expect(e.lines.single.single.isBlank, isTrue);
       }
     });
 

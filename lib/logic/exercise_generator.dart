@@ -117,13 +117,14 @@ Exercise generateExercise(ExerciseType type,
 }
 
 /// Partnerzahlen: n ausgemalte Punkte, wie viele fehlen bis zur 10?
+/// Bewusst ohne Rechenzeile — die Kinder sollen die Punkte zählen.
 Exercise _partner() {
   final n = _rng.nextInt(9) + 1; // 1..9
   return Exercise(
     prompt: 'Wie viel fehlt bis zur 10?',
     dots: n,
     lines: [
-      [t('$n'), t('+'), b(0), t('='), t('10')]
+      [b(0)]
     ],
     answers: [10 - n],
   );
