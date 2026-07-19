@@ -128,6 +128,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1700));
   });
 
+  testWidgets('Vergleich: Auswahl-Buttons, zweiter Versuch gibt 5 Punkte',
+      (tester) async {
+    Exercise vergleich() => Exercise(
+          prompt: 'Vergleiche die Zahlen!',
+          lines: [
+            [t('7'), b(0), t('5')]
+          ],
+          choices: const ['<', '=', '>'],
+          answers: [2],
+        );
+
+    await tester.pumpWidget(wrap(vergleich));
+    expect(find.byType(Numpad), findsNothing);
+
+    await tester.tap(find.text('<')); // falsch
+    await tester.pump();
+    expect(find.text('Fast! Probier es noch einmal. 💪'), findsOneWidget);
+
+    await tester.tap(find.text('>')); // richtig
+    await tester.pump();
+    expect(find.text('Richtig! +5 Punkte 👍'), findsOneWidget);
+    expect(find.text('⭐ 5'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 1700));
+  });
+
   testWidgets('Zurück fragt nach, Weiterüben bleibt, Beenden verlässt',
       (tester) async {
     await tester.pumpWidget(MaterialApp(

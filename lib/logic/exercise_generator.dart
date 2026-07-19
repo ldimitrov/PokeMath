@@ -4,6 +4,7 @@ import 'dart:math';
 enum ExerciseType {
   plusMinus('Plus und Minus', 'Rechne bis 20', '➕➖'),
   partner('Partnerzahlen', 'Wie viel fehlt bis zur 10?', '🔵'),
+  vergleich('Anzahlen vergleichen', 'Kleiner, gleich oder größer?', '🐊'),
   zehner('Zehnerübergang', 'Rechne bis 10 und dann weiter', '🔟'),
   fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
   zerlegen('Zahlen zerlegen', 'Fülle das Zahlenhaus!', '🏠'),
@@ -27,11 +28,15 @@ List<ExerciseType> typesForGrade(int grade) => grade == 0
     ? const [
         ExerciseType.plusMinus,
         ExerciseType.partner,
+        ExerciseType.vergleich,
         ExerciseType.fehlend,
         ExerciseType.korrektFalsch,
         ExerciseType.folge,
       ]
-    : [for (final t in ExerciseType.values) if (t != ExerciseType.partner) t];
+    : [
+        for (final t in ExerciseType.values)
+          if (t != ExerciseType.partner && t != ExerciseType.vergleich) t
+      ];
 
 /// Ein Baustein einer Aufgabenzeile: entweder fester Text (Zahl, Operator)
 /// oder ein Eingabefeld (Index in [Exercise.answers]).
@@ -68,6 +73,10 @@ class Exercise {
   /// Zahlenhaus: die Dachzahl — jede Zeile (Etage) ergibt diese Summe.
   final int? houseSum;
 
+  /// Auswahl-Modus: diese Optionen erscheinen als Buttons statt des
+  /// Ziffernblocks; [answers] enthält dann den Index der richtigen Option.
+  final List<String>? choices;
+
   Exercise(
       {this.prompt,
       required this.lines,
@@ -75,9 +84,12 @@ class Exercise {
       this.isTrue,
       this.solution,
       this.dots,
-      this.houseSum});
+      this.houseSum,
+      this.choices});
 
   bool get isTrueFalse => isTrue != null;
+
+  bool get isChoice => choices != null;
 }
 
 final _rng = Random();
@@ -93,6 +105,8 @@ Exercise generateExercise(ExerciseType type,
       return _plusMinus(maxN);
     case ExerciseType.partner:
       return _partner();
+    case ExerciseType.vergleich:
+      return _vergleich();
     case ExerciseType.zehner:
       return _zehner(plus: progress < 0.7);
     case ExerciseType.fehlend:
@@ -134,6 +148,23 @@ Exercise _partner() {
       [b(0)]
     ],
     answers: [10 - n],
+  );
+}
+
+/// Anzahlen vergleichen: 7 [_] 5 — kleiner, gleich oder größer?
+Exercise _vergleich() {
+  final a = _rng.nextInt(10) + 1;
+  // Etwa jedes dritte Mal sind beide Zahlen gleich.
+  final bb = _rng.nextInt(3) == 0 ? a : _rng.nextInt(10) + 1;
+  const symbols = ['<', '=', '>'];
+  final correct = a < bb ? '<' : (a > bb ? '>' : '=');
+  return Exercise(
+    prompt: 'Vergleiche die Zahlen!',
+    lines: [
+      [t('$a'), b(0), t('$bb')]
+    ],
+    choices: symbols,
+    answers: [symbols.indexOf(correct)],
   );
 }
 

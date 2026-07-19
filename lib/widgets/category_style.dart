@@ -7,6 +7,7 @@ extension ExerciseTypeStyle on ExerciseType {
   Color get color => switch (this) {
         ExerciseType.plusMinus => const Color(0xFFF57C00), // Orange
         ExerciseType.partner => const Color(0xFF0288D1), // Hellblau
+        ExerciseType.vergleich => const Color(0xFFD81B60), // Pink
         ExerciseType.zehner => const Color(0xFF1E88E5), // Blau
         ExerciseType.fehlend => const Color(0xFF00897B), // Petrol
         ExerciseType.zerlegen => const Color(0xFF6D4C41), // Braun

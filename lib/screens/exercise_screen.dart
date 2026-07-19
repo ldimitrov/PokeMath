@@ -132,6 +132,33 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
   }
 
+  /// Auswahl-Aufgaben (z.B. <, =, >): zwei Versuche wie beim Ziffernblock.
+  void _onChoice(int idx) {
+    if (_locked) return;
+    setState(() => _inputs[0] = _exercise.choices![idx]);
+    if (idx == _exercise.answers[0]) {
+      _solved(_tries == 0 ? 10 : 5);
+    } else {
+      _tries++;
+      if (_tries >= 2) {
+        setState(() {
+          _inputs[0] = _exercise.choices![_exercise.answers[0]];
+          _wrong = {0};
+          _feedback = 'Schau, so ist es richtig. 🧐';
+          _feedbackGood = false;
+          _locked = true;
+        });
+        _nextAfterDelay(const Duration(milliseconds: 2600));
+      } else {
+        setState(() {
+          _wrong = {0};
+          _feedback = 'Fast! Probier es noch einmal. 💪';
+          _feedbackGood = false;
+        });
+      }
+    }
+  }
+
   /// Korrekt/Falsch-Aufgaben: nur ein Versuch.
   void _onTrueFalse(bool guess) {
     if (_locked) return;
@@ -322,6 +349,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 ),
                 if (_exercise.isTrueFalse)
                   _buildTrueFalseButtons()
+                else if (_exercise.isChoice)
+                  _buildChoiceButtons()
                 else
                   Numpad(
                     onDigit: _onDigit,
@@ -381,6 +410,32 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               token.text!,
               style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
+      ],
+    );
+  }
+
+  Widget _buildChoiceButtons() {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        for (var i = 0; i < _exercise.choices!.length; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: scheme.surfaceContainerHighest,
+                foregroundColor: scheme.onSurface,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+              ),
+              onPressed: _locked ? null : () => _onChoice(i),
+              child: Text(
+                _exercise.choices![i],
+                style: const TextStyle(
+                    fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

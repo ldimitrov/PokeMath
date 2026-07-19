@@ -19,10 +19,12 @@ import 'package:pokemath/logic/exercise_generator.dart';
 
 void main() {
   group('Klassenstufen', () {
-    test('Vorschule hat 5 Aufgabentypen inkl. Partnerzahlen', () {
+    test('Vorschule hat 6 Aufgabentypen inkl. Partnerzahlen und Vergleich',
+        () {
       final types = typesForGrade(0);
-      expect(types, hasLength(5));
+      expect(types, hasLength(6));
       expect(types, contains(ExerciseType.partner));
+      expect(types, contains(ExerciseType.vergleich));
       expect(types, isNot(contains(ExerciseType.zehner)));
       expect(types, isNot(contains(ExerciseType.kette)));
       expect(types, isNot(contains(ExerciseType.nachbar)));
@@ -33,6 +35,7 @@ void main() {
       expect(types, hasLength(8));
       expect(types, contains(ExerciseType.zerlegen));
       expect(types, isNot(contains(ExerciseType.partner)));
+      expect(types, isNot(contains(ExerciseType.vergleich)));
     });
   });
 
@@ -46,6 +49,32 @@ void main() {
         // Nur ein Eingabefeld, keine sichtbare Rechenzeile.
         expect(e.lines.single.single.isBlank, isTrue);
       }
+    });
+
+    test('Anzahlen vergleichen: richtiges Symbol, alle drei kommen vor', () {
+      var seenLt = false, seenEq = false, seenGt = false;
+      for (var i = 0; i < 500; i++) {
+        final e = generateExercise(ExerciseType.vergleich, grade: 0);
+        expect(e.choices, ['<', '=', '>']);
+        final line = e.lines.single;
+        final a = int.parse(line[0].text!);
+        final bb = int.parse(line[2].text!);
+        expect(line[1].isBlank, isTrue);
+        expect(a, inInclusiveRange(1, 10));
+        expect(bb, inInclusiveRange(1, 10));
+        final correct = e.choices![e.answers.single];
+        if (a < bb) {
+          expect(correct, '<');
+          seenLt = true;
+        } else if (a > bb) {
+          expect(correct, '>');
+          seenGt = true;
+        } else {
+          expect(correct, '=');
+          seenEq = true;
+        }
+      }
+      expect(seenLt && seenEq && seenGt, isTrue);
     });
 
     test('alle Vorschul-Rechnungen bleiben im Zahlenraum bis 10', () {
