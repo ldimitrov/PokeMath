@@ -67,6 +67,57 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {});
   }
 
+  /// Klassenstufe wechseln — jederzeit, auch zurück zum Auffrischen.
+  Future<void> _switchGrade() async {
+    final choice = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('In welcher Klasse möchtest du üben?'),
+        children: [
+          for (final (g, name, enabled) in [
+            (0, 'Vorschule (bis 10)', true),
+            (1, 'Klasse 1 (bis 20)', true),
+            (2, 'Klasse 2', false),
+            (3, 'Klasse 3', false),
+            (4, 'Klasse 4', false),
+          ])
+            SimpleDialogOption(
+              onPressed: enabled ? () => Navigator.pop(ctx, g) : null,
+              child: Row(
+                children: [
+                  if (profile.grade == g)
+                    const Icon(Icons.check, size: 20)
+                  else
+                    const SizedBox(width: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    enabled ? name : '$name — kommt bald!',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: profile.grade == g
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: enabled
+                          ? null
+                          : Theme.of(ctx)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (choice != null && choice != profile.grade) {
+      profile.grade = choice;
+      await DatabaseHelper.instance.updateProfile(profile);
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -75,6 +126,11 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text('Hallo, ${profile.name}!'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.school),
+            tooltip: 'Klassenstufe wechseln',
+            onPressed: _switchGrade,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
@@ -173,11 +229,28 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Wähle deine Aufgaben:',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Wähle deine Aufgaben:',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(profile.gradeName,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             GridView.count(
               crossAxisCount: 2,
@@ -187,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 12,
               childAspectRatio: 0.95,
               children: [
-                for (final type in ExerciseType.values)
+                for (final type in typesForGrade(profile.grade))
                   Material(
                     color: type.tileColor,
                     borderRadius: BorderRadius.circular(20),
@@ -209,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: type.color)),
                             const SizedBox(height: 4),
-                            Text(type.subtitle,
+                            Text(type.subtitleFor(profile.grade),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 12)),
                           ],

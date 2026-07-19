@@ -17,6 +17,9 @@ class Profile {
     this.activePokemonId,
   });
 
+  /// Anzeigename der Klassenstufe (0 = Vorschule).
+  String get gradeName => grade == 0 ? 'Vorschule' : 'Klasse $grade';
+
   /// Verbucht Rundenpunkte; je 100 Fortschrittspunkte werden ein Pokéball.
   void addPoints(int pts) {
     points += pts;

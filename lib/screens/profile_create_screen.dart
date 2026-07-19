@@ -56,6 +56,13 @@ class _ProfileCreateScreenState extends State<ProfileCreateScreen> {
               const Text('In welche Klasse gehst du?',
                   style: TextStyle(fontSize: 22)),
               const SizedBox(height: 12),
+              _GradeButton(
+                label: 'Vorschule',
+                selected: _grade == 0,
+                enabled: true,
+                onTap: () => setState(() => _grade = 0),
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   for (var g = 1; g <= 4; g++)
@@ -63,9 +70,9 @@ class _ProfileCreateScreenState extends State<ProfileCreateScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: _GradeButton(
-                          grade: g,
+                          label: '$g',
                           selected: _grade == g,
-                          // Vorerst gibt es nur Aufgaben für Klasse 1.
+                          // Aufgaben gibt es bisher für Vorschule und Klasse 1.
                           enabled: g == 1,
                           onTap: () => setState(() => _grade = g),
                         ),
@@ -95,13 +102,13 @@ class _ProfileCreateScreenState extends State<ProfileCreateScreen> {
 }
 
 class _GradeButton extends StatelessWidget {
-  final int grade;
+  final String label;
   final bool selected;
   final bool enabled;
   final VoidCallback onTap;
 
   const _GradeButton(
-      {required this.grade,
+      {required this.label,
       required this.selected,
       required this.enabled,
       required this.onTap});
@@ -120,13 +127,13 @@ class _GradeButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: enabled ? onTap : null,
         child: SizedBox(
-          height: 72,
+          height: 64,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('$grade',
+              Text(label,
                   style: TextStyle(
-                      fontSize: 28,
+                      fontSize: label.length > 2 ? 22 : 28,
                       fontWeight: FontWeight.bold,
                       color: selected
                           ? scheme.onPrimary

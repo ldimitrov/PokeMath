@@ -1,8 +1,9 @@
 import 'dart:math';
 
-/// Aufgabentypen für Klasse 1 (Zahlenraum bis 20).
+/// Aufgabentypen. Vorschule rechnet im Zahlenraum bis 10, Klasse 1 bis 20.
 enum ExerciseType {
   plusMinus('Plus und Minus', 'Rechne bis 20', '➕➖'),
+  partner('Partnerzahlen', 'Wie viel fehlt bis zur 10?', '🔵'),
   zehner('Zehnerübergang', 'Rechne bis 10 und dann weiter', '🔟'),
   fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
   kette('Kettenaufgaben', 'Rechne die ganze Kette', '🔗'),
@@ -14,7 +15,22 @@ enum ExerciseType {
   final String subtitle;
   final String emoji;
   const ExerciseType(this.title, this.subtitle, this.emoji);
+
+  /// Untertitel passend zur Klassenstufe.
+  String subtitleFor(int grade) =>
+      this == ExerciseType.plusMinus && grade == 0 ? 'Rechne bis 10' : subtitle;
 }
+
+/// Welche Aufgabentypen es für eine Klassenstufe gibt (0 = Vorschule).
+List<ExerciseType> typesForGrade(int grade) => grade == 0
+    ? const [
+        ExerciseType.plusMinus,
+        ExerciseType.partner,
+        ExerciseType.fehlend,
+        ExerciseType.korrektFalsch,
+        ExerciseType.folge,
+      ]
+    : [for (final t in ExerciseType.values) if (t != ExerciseType.partner) t];
 
 /// Ein Baustein einer Aufgabenzeile: entweder fester Text (Zahl, Operator)
 /// oder ein Eingabefeld (Index in [Exercise.answers]).
@@ -45,7 +61,16 @@ class Exercise {
   /// Erklärung bei falscher Antwort (z.B. die richtige Rechnung).
   final String? solution;
 
-  Exercise({this.prompt, required this.lines, this.answers = const [], this.isTrue, this.solution});
+  /// Partnerzahlen: so viele von 10 Punkten sind ausgemalt.
+  final int? dots;
+
+  Exercise(
+      {this.prompt,
+      required this.lines,
+      this.answers = const [],
+      this.isTrue,
+      this.solution,
+      this.dots});
 
   bool get isTrueFalse => isTrue != null;
 }
@@ -54,40 +79,58 @@ final _rng = Random();
 
 /// [progress] ist der Fortschritt in der Runde (0.0 bis 1.0). Der
 /// Zehnerübergang beginnt mit Plus und wechselt am Ende zu Minus.
-Exercise generateExercise(ExerciseType type, {double progress = 0}) {
+/// [grade] 0 = Vorschule (Zahlenraum bis 10), sonst Klasse 1 (bis 20).
+Exercise generateExercise(ExerciseType type,
+    {double progress = 0, int grade = 1}) {
+  final maxN = grade == 0 ? 10 : 20;
   switch (type) {
     case ExerciseType.plusMinus:
-      return _plusMinus();
+      return _plusMinus(maxN);
+    case ExerciseType.partner:
+      return _partner();
     case ExerciseType.zehner:
       return _zehner(plus: progress < 0.7);
     case ExerciseType.fehlend:
-      return _fehlend();
+      return _fehlend(maxN);
     case ExerciseType.kette:
       return _kette(progress: progress);
     case ExerciseType.korrektFalsch:
-      return _korrektFalsch();
+      return _korrektFalsch(maxN);
     case ExerciseType.nachbar:
       return _nachbar();
     case ExerciseType.folge:
-      return _folge();
+      return _folge(maxN);
   }
 }
 
-/// Zufällige Plus- oder Minus-Zahlen im Zahlenraum bis 20 (Ergebnis >= 1).
-(int a, int b, int result, String op) _randomPlusMinus() {
+/// Zufällige Plus- oder Minus-Zahlen im Zahlenraum bis [maxN] (Ergebnis >= 1).
+(int a, int b, int result, String op) _randomPlusMinus(int maxN) {
   if (_rng.nextBool()) {
-    final a = _rng.nextInt(19) + 1; // 1..19
-    final bb = _rng.nextInt(20 - a) + 1; // Summe <= 20
+    final a = _rng.nextInt(maxN - 1) + 1; // 1..maxN-1
+    final bb = _rng.nextInt(maxN - a) + 1; // Summe <= maxN
     return (a, bb, a + bb, '+');
   } else {
-    final a = _rng.nextInt(19) + 2; // 2..20
+    final a = _rng.nextInt(maxN - 1) + 2; // 2..maxN
     final bb = _rng.nextInt(a - 1) + 1; // Ergebnis >= 1
     return (a, bb, a - bb, '−');
   }
 }
 
-Exercise _plusMinus() {
-  final (a, bb, result, op) = _randomPlusMinus();
+/// Partnerzahlen: n ausgemalte Punkte, wie viele fehlen bis zur 10?
+Exercise _partner() {
+  final n = _rng.nextInt(9) + 1; // 1..9
+  return Exercise(
+    prompt: 'Wie viel fehlt bis zur 10?',
+    dots: n,
+    lines: [
+      [t('$n'), t('+'), b(0), t('='), t('10')]
+    ],
+    answers: [10 - n],
+  );
+}
+
+Exercise _plusMinus(int maxN) {
+  final (a, bb, result, op) = _randomPlusMinus(maxN);
   return Exercise(
     lines: [
       [t('$a'), t(op), t('$bb'), t('='), b(0)]
@@ -128,8 +171,8 @@ Exercise _zehner({required bool plus}) {
 }
 
 /// Fehlende Zahl in der Gleichung: 4 + [_] = 12, [_] + 5 = 11, 13 − [_] = 9 ...
-Exercise _fehlend() {
-  final (a, bb, result, op) = _randomPlusMinus();
+Exercise _fehlend(int maxN) {
+  final (a, bb, result, op) = _randomPlusMinus(maxN);
   final missingFirst = _rng.nextBool();
   return Exercise(
     lines: [
@@ -209,13 +252,13 @@ Exercise _kette({required double progress}) {
 }
 
 /// Korrekt oder falsch: "5 + 10 = 14"?
-Exercise _korrektFalsch() {
-  final (a, bb, result, op) = _randomPlusMinus();
+Exercise _korrektFalsch(int maxN) {
+  final (a, bb, result, op) = _randomPlusMinus(maxN);
   final isTrue = _rng.nextBool();
   var shown = result;
   if (!isTrue) {
     while (shown == result) {
-      shown = max(0, result + _rng.nextInt(7) - 3);
+      shown = max(0, min(maxN, result + _rng.nextInt(7) - 3));
     }
   }
   return Exercise(
@@ -292,9 +335,9 @@ Exercise _nachbar() {
 }
 
 /// Zahlenfolge mit Schrittweite 1 oder 2, eine Zahl fehlt.
-Exercise _folge() {
+Exercise _folge(int maxN) {
   final step = _rng.nextBool() ? 1 : 2;
-  final start = _rng.nextInt(20 - 4 * step) + 1;
+  final start = _rng.nextInt(maxN - 4 * step) + 1;
   final numbers = List.generate(5, (i) => start + i * step);
   final missing = _rng.nextInt(5);
   return Exercise(

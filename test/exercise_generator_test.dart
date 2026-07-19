@@ -18,6 +18,60 @@ import 'package:pokemath/logic/exercise_generator.dart';
 }
 
 void main() {
+  group('Klassenstufen', () {
+    test('Vorschule hat 5 Aufgabentypen inkl. Partnerzahlen', () {
+      final types = typesForGrade(0);
+      expect(types, hasLength(5));
+      expect(types, contains(ExerciseType.partner));
+      expect(types, isNot(contains(ExerciseType.zehner)));
+      expect(types, isNot(contains(ExerciseType.kette)));
+      expect(types, isNot(contains(ExerciseType.nachbar)));
+    });
+
+    test('Klasse 1 hat 7 Aufgabentypen ohne Partnerzahlen', () {
+      final types = typesForGrade(1);
+      expect(types, hasLength(7));
+      expect(types, isNot(contains(ExerciseType.partner)));
+    });
+  });
+
+  group('Aufgaben-Generator Vorschule (Zahlenraum bis 10)', () {
+    test('Partnerzahlen: Punkte und Antwort ergänzen sich zu 10', () {
+      for (var i = 0; i < 200; i++) {
+        final e = generateExercise(ExerciseType.partner, grade: 0);
+        expect(e.dots, isNotNull);
+        expect(e.dots, inInclusiveRange(1, 9));
+        expect(e.answers.single, 10 - e.dots!);
+        final (lhs, rhs) = evalLine(e.lines.single, e.answers);
+        expect(lhs, rhs);
+      }
+    });
+
+    test('alle Vorschul-Rechnungen bleiben im Zahlenraum bis 10', () {
+      for (final type in [
+        ExerciseType.plusMinus,
+        ExerciseType.fehlend,
+        ExerciseType.korrektFalsch,
+        ExerciseType.folge,
+      ]) {
+        for (var i = 0; i < 300; i++) {
+          final e = generateExercise(type, grade: 0);
+          for (final line in e.lines) {
+            for (final tok in line) {
+              final n = tok.isBlank
+                  ? e.answers[tok.blank!]
+                  : int.tryParse(tok.text!);
+              if (n != null) {
+                expect(n, inInclusiveRange(0, 10),
+                    reason: '$type: $n über 10');
+              }
+            }
+          }
+        }
+      }
+    });
+  });
+
   group('Aufgaben-Generator Klasse 1', () {
     test('Plus/Minus: Gleichung stimmt, Zahlenraum 1-20', () {
       for (var i = 0; i < 500; i++) {

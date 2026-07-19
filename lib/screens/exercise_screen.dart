@@ -58,6 +58,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         generateExercise(
           widget.type,
           progress: (_questionNr - 1) / questionsPerRound,
+          grade: widget.profile.grade,
         );
     _inputs = List.filled(_exercise.answers.length, '');
     _active = 0;
@@ -269,6 +270,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
+                if (_exercise.dots != null) ...[
+                  _DotsRow(
+                      key: const ValueKey('dots'), filled: _exercise.dots!),
+                  const SizedBox(height: 20),
+                ],
                 for (final line in _exercise.lines) ...[
                   _buildLine(line),
                   const SizedBox(height: 16),
@@ -365,6 +371,38 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             label: const Text('Falsch'),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Zehn Punkte wie im Rechenheft: die ersten [filled] sind ausgemalt,
+/// mit einer Lücke nach dem fünften Punkt (Kraft der Fünf).
+class _DotsRow extends StatelessWidget {
+  final int filled;
+  const _DotsRow({super.key, required this.filled});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < 10; i++)
+          Container(
+            width: 30,
+            height: 30,
+            margin: EdgeInsets.only(left: i == 0 ? 0 : (i == 5 ? 14 : 4)),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i < filled ? const Color(0xFF2196F3) : Colors.white,
+              border: Border.all(
+                color: i < filled
+                    ? const Color(0xFF1976D2)
+                    : Colors.grey.shade400,
+                width: 2,
+              ),
+            ),
+          ),
       ],
     );
   }

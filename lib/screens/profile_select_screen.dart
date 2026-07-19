@@ -109,7 +109,7 @@ class _ProfileSelectScreenState extends State<ProfileSelectScreen> {
                                             fontSize: 22,
                                             fontWeight: FontWeight.bold)),
                                     subtitle: Text(
-                                        'Klasse ${p.grade} · ${p.points} Punkte'),
+                                        '${p.gradeName} · ${p.points} Punkte'),
                                     trailing:
                                         const Icon(Icons.arrow_forward_ios),
                                     onTap: () => _openProfile(p),
