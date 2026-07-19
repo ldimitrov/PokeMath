@@ -119,3 +119,4 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 # Pokémon artwork stays local only (copyright - repo is public)
 assets/pokemon/
+/.idea/
