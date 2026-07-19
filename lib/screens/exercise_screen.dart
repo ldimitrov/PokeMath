@@ -261,51 +261,65 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text('Aufgabe $_questionNr von $questionsPerRound'),
-                const Spacer(),
-                if (_exercise.prompt != null) ...[
-                  Text(
-                    _exercise.prompt!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 22),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (_exercise.dots != null) ...[
-                  _DotsRow(
-                      key: const ValueKey('dots'), filled: _exercise.dots!),
-                  const SizedBox(height: 20),
-                ],
-                if (_exercise.houseSum != null)
-                  _HouseView(
-                    sum: _exercise.houseSum!,
-                    floors: [
-                      for (final line in _exercise.lines) _buildLine(line),
-                    ],
-                  )
-                else
-                  for (final line in _exercise.lines) ...[
-                    _buildLine(line),
-                    const SizedBox(height: 16),
-                  ],
-                SizedBox(
-                  height: 72,
+                // Aufgabenbereich: zentriert, scrollt bei wenig Platz
+                // (z.B. dreistöckiges Zahlenhaus auf kleinen Displays).
+                Expanded(
                   child: Center(
-                    child: _feedback != null
-                        ? Text(
-                            _feedback!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold,
-                              color: _feedbackGood
-                                  ? Colors.green
-                                  : scheme.error,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_exercise.prompt != null) ...[
+                            Text(
+                              _exercise.prompt!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 22),
                             ),
-                          )
-                        : null,
+                            const SizedBox(height: 16),
+                          ],
+                          if (_exercise.dots != null) ...[
+                            _DotsRow(
+                                key: const ValueKey('dots'),
+                                filled: _exercise.dots!),
+                            const SizedBox(height: 20),
+                          ],
+                          if (_exercise.houseSum != null)
+                            _HouseView(
+                              sum: _exercise.houseSum!,
+                              floors: [
+                                for (final line in _exercise.lines)
+                                  _buildLine(line),
+                              ],
+                            )
+                          else
+                            for (final line in _exercise.lines) ...[
+                              _buildLine(line),
+                              const SizedBox(height: 16),
+                            ],
+                          SizedBox(
+                            height: 64,
+                            child: Center(
+                              child: _feedback != null
+                                  ? Text(
+                                      _feedback!,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.bold,
+                                        color: _feedbackGood
+                                            ? Colors.green
+                                            : scheme.error,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const Spacer(),
                 if (_exercise.isTrueFalse)
                   _buildTrueFalseButtons()
                 else
