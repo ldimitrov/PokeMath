@@ -14,11 +14,27 @@ class DatabaseHelper {
 
   Future<Database> get db async => _db ??= await _open();
 
+  /// Nur für Tests: schließt die Verbindung, damit eine andere DB-Datei
+  /// geöffnet werden kann.
+  Future<void> close() async {
+    await _db?.close();
+    _db = null;
+  }
+
+  static const _discoveredTable = '''
+    CREATE TABLE discovered (
+      profile_id INTEGER NOT NULL,
+      species_id INTEGER NOT NULL,
+      discovered_at TEXT NOT NULL,
+      PRIMARY KEY (profile_id, species_id)
+    )
+  ''';
+
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(
       join(dir, dbName),
-      version: 1,
+      version: 2,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE profiles (
@@ -40,6 +56,17 @@ class DatabaseHelper {
             caught_at TEXT NOT NULL
           )
         ''');
+        await db.execute(_discoveredTable);
+      },
+      onUpgrade: (db, oldVersion, _) async {
+        if (oldVersion < 2) {
+          await db.execute(_discoveredTable);
+          // Bestehende Pokémon als entdeckt übernehmen.
+          await db.execute('''
+            INSERT OR IGNORE INTO discovered (profile_id, species_id, discovered_at)
+            SELECT DISTINCT profile_id, species_id, caught_at FROM owned_pokemon
+          ''');
+        }
       },
     );
   }
@@ -65,6 +92,7 @@ class DatabaseHelper {
   Future<void> deleteProfile(int id) async {
     final d = await db;
     await d.delete('owned_pokemon', where: 'profile_id = ?', whereArgs: [id]);
+    await d.delete('discovered', where: 'profile_id = ?', whereArgs: [id]);
     await d.delete('profiles', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -83,7 +111,30 @@ class DatabaseHelper {
       'energy': 0,
       'caught_at': DateTime.now().toIso8601String(),
     });
+    await markDiscovered(profileId, speciesId);
     return OwnedPokemon(id: id, profileId: profileId, speciesId: speciesId);
+  }
+
+  // --- Pokédex (dauerhaft entdeckte Arten) ---
+
+  Future<void> markDiscovered(int profileId, int speciesId) async {
+    await (await db).insert(
+      'discovered',
+      {
+        'profile_id': profileId,
+        'species_id': speciesId,
+        'discovered_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<Set<int>> getDiscovered(int profileId) async {
+    final rows = await (await db).query('discovered',
+        columns: ['species_id'],
+        where: 'profile_id = ?',
+        whereArgs: [profileId]);
+    return {for (final r in rows) r['species_id'] as int};
   }
 
   Future<void> updatePokemon(OwnedPokemon p) async {

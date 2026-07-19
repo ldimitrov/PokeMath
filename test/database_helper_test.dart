@@ -68,6 +68,34 @@ void main() {
     expect(await db.getTeam(p.id), isEmpty);
   });
 
+  test('Fangen markiert die Art dauerhaft als entdeckt', () async {
+    final p = await db.createProfile('Dex1', 1);
+    await db.addPokemon(p.id, 4); // Glumanda
+    expect(await db.getDiscovered(p.id), {4});
+
+    // Doppelt fangen ändert nichts (kein Fehler, kein Duplikat).
+    await db.addPokemon(p.id, 4);
+    expect(await db.getDiscovered(p.id), {4});
+  });
+
+  test('Entdeckungen bleiben nach Entwicklung erhalten', () async {
+    final p = await db.createProfile('Dex2', 1);
+    final mon = await db.addPokemon(p.id, 4);
+    // Entwicklung: Art wechselt, neue Art wird zusätzlich entdeckt.
+    mon.speciesId = 5;
+    await db.updatePokemon(mon);
+    await db.markDiscovered(p.id, 5);
+
+    expect(await db.getDiscovered(p.id), {4, 5});
+  });
+
+  test('Profil löschen entfernt auch die Entdeckungen', () async {
+    final p = await db.createProfile('Dex3', 1);
+    await db.addPokemon(p.id, 25);
+    await db.deleteProfile(p.id);
+    expect(await db.getDiscovered(p.id), isEmpty);
+  });
+
   test('Teams verschiedener Profile bleiben getrennt', () async {
     final a = await db.createProfile('Duo1', 1);
     final b = await db.createProfile('Duo2', 1);
@@ -76,5 +104,54 @@ void main() {
 
     expect((await db.getTeam(a.id)).single.speciesId, 1);
     expect((await db.getTeam(b.id)).single.speciesId, 133);
+  });
+
+  test('Migration v1 → v2 übernimmt vorhandene Pokémon als entdeckt',
+      () async {
+    // Alte v1-Datenbank (ohne discovered-Tabelle) von Hand anlegen.
+    await db.close();
+    DatabaseHelper.dbName = 'pokemath_migration_test.db';
+    final dir = await databaseFactory.getDatabasesPath();
+    final path = join(dir, DatabaseHelper.dbName);
+    await databaseFactory.deleteDatabase(path);
+    final v1 = await databaseFactory.openDatabase(path,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onCreate: (d, _) async {
+            await d.execute('''
+              CREATE TABLE profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL, grade INTEGER NOT NULL,
+                points INTEGER NOT NULL DEFAULT 0,
+                ball_progress INTEGER NOT NULL DEFAULT 0,
+                pokeballs INTEGER NOT NULL DEFAULT 0,
+                active_pokemon_id INTEGER
+              )
+            ''');
+            await d.execute('''
+              CREATE TABLE owned_pokemon (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_id INTEGER NOT NULL,
+                species_id INTEGER NOT NULL,
+                energy INTEGER NOT NULL DEFAULT 0,
+                caught_at TEXT NOT NULL
+              )
+            ''');
+          },
+        ));
+    final profileId = await v1.insert('profiles', {'name': 'Alt', 'grade': 1});
+    for (final species in [4, 4, 25]) {
+      await v1.insert('owned_pokemon', {
+        'profile_id': profileId,
+        'species_id': species,
+        'energy': 0,
+        'caught_at': DateTime.now().toIso8601String(),
+      });
+    }
+    await v1.close();
+
+    // Öffnen über den Helper löst das Upgrade auf v2 aus.
+    expect(await db.getDiscovered(profileId), {4, 25});
+    expect((await db.getTeam(profileId)).length, 3);
   });
 }
