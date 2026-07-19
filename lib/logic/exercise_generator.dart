@@ -6,10 +6,10 @@ enum ExerciseType {
   partner('Partnerzahlen', 'Wie viel fehlt bis zur 10?', '🔵'),
   zehner('Zehnerübergang', 'Rechne bis 10 und dann weiter', '🔟'),
   fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
-  zerlegen('Zahlen zerlegen', 'Fülle das Zahlenhaus!', '🧩'),
+  zerlegen('Zahlen zerlegen', 'Fülle das Zahlenhaus!', '🏠'),
   kette('Kettenaufgaben', 'Rechne die ganze Kette', '🔗'),
   korrektFalsch('Korrekt oder falsch?', 'Stimmt die Rechnung?', '⚖️'),
-  nachbar('Nachbarzahlen', 'Finde die Nachbarn!', '🏠'),
+  nachbar('Nachbarzahlen', 'Finde die Nachbarn!', '🏘️'),
   folge('Zahlenfolgen', 'Welche Zahl fehlt in der Reihe?', '➡️');
 
   final String title;
