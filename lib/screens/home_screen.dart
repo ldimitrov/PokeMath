@@ -21,8 +21,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   OwnedPokemon? _active;
+  final _scroll = ScrollController();
 
   Profile get profile => widget.profile;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -51,6 +58,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ExerciseScreen(profile: profile, type: type, active: _active)));
     _loadActive();
     setState(() {});
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic);
+    }
   }
 
   Future<void> _openBall() async {
@@ -143,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: SafeArea(
         child: ListView(
+          controller: _scroll,
           padding: const EdgeInsets.all(16),
           children: [
             // Begleiter-Karte
