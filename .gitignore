@@ -120,3 +120,4 @@ app.*.symbols
 # Pokémon artwork stays local only (copyright - repo is public)
 assets/pokemon/
 /.idea/
+*.iml
