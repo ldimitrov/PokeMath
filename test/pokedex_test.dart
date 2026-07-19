@@ -104,10 +104,12 @@ void main() {
       final evoli = evolutionChain(134);
       expect(evoli.first.single.id, 133);
       expect(evoli.last.map((s) => s.id), containsAll([134, 135, 136]));
-      // Relaxo hat keine Entwicklung.
-      expect(evolutionChain(143), [
-        [speciesById(143)]
+      // Mew hat keine Entwicklung.
+      expect(evolutionChain(151), [
+        [speciesById(151)]
       ]);
+      // Relaxo hat eine Vorstufe: Mampfaxo.
+      expect(evolutionChain(143).map((l) => l.single.id), [446, 143]);
     });
 
     test('für jedes Pokémon liegt ein Bild in assets/pokemon', () {
