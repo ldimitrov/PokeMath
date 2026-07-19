@@ -275,10 +275,18 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       key: const ValueKey('dots'), filled: _exercise.dots!),
                   const SizedBox(height: 20),
                 ],
-                for (final line in _exercise.lines) ...[
-                  _buildLine(line),
-                  const SizedBox(height: 16),
-                ],
+                if (_exercise.houseSum != null)
+                  _HouseView(
+                    sum: _exercise.houseSum!,
+                    floors: [
+                      for (final line in _exercise.lines) _buildLine(line),
+                    ],
+                  )
+                else
+                  for (final line in _exercise.lines) ...[
+                    _buildLine(line),
+                    const SizedBox(height: 16),
+                  ],
                 SizedBox(
                   height: 72,
                   child: Center(
@@ -374,6 +382,90 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       ],
     );
   }
+}
+
+/// Zahlenhaus: Dreiecksdach mit der Zielzahl, darunter die Etagen.
+class _HouseView extends StatelessWidget {
+  final int sum;
+  final List<Widget> floors;
+  const _HouseView({required this.sum, required this.floors});
+
+  @override
+  Widget build(BuildContext context) {
+    const width = 290.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: width,
+          height: 82,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: _RoofPainter(Color(0xFFE05B4B))),
+              ),
+              Positioned(
+                bottom: 8,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text('$sum',
+                      style: const TextStyle(
+                          fontSize: 26, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          width: width,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFDEBD3),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < floors.length; i++) ...[
+                if (i > 0)
+                  Container(
+                      height: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      color: const Color(0xFFD7B58C)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: floors[i],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoofPainter extends CustomPainter {
+  final Color color;
+  const _RoofPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_RoofPainter oldDelegate) => oldDelegate.color != color;
 }
 
 /// Zehn Punkte wie im Rechenheft: die ersten [filled] sind ausgemalt,

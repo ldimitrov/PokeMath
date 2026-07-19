@@ -9,6 +9,7 @@ extension ExerciseTypeStyle on ExerciseType {
         ExerciseType.partner => const Color(0xFF0288D1), // Hellblau
         ExerciseType.zehner => const Color(0xFF1E88E5), // Blau
         ExerciseType.fehlend => const Color(0xFF00897B), // Petrol
+        ExerciseType.zerlegen => const Color(0xFF6D4C41), // Braun
         ExerciseType.kette => const Color(0xFF8E24AA), // Lila
         ExerciseType.korrektFalsch => const Color(0xFF43A047), // Grün
         ExerciseType.nachbar => const Color(0xFFE53935), // Rot

@@ -28,9 +28,10 @@ void main() {
       expect(types, isNot(contains(ExerciseType.nachbar)));
     });
 
-    test('Klasse 1 hat 7 Aufgabentypen ohne Partnerzahlen', () {
+    test('Klasse 1 hat 8 Aufgabentypen ohne Partnerzahlen', () {
       final types = typesForGrade(1);
-      expect(types, hasLength(7));
+      expect(types, hasLength(8));
+      expect(types, contains(ExerciseType.zerlegen));
       expect(types, isNot(contains(ExerciseType.partner)));
     });
   });
@@ -188,6 +189,28 @@ void main() {
         e.isTrue! ? seenTrue = true : seenFalse = true;
       }
       expect(seenTrue && seenFalse, isTrue);
+    });
+
+    test('Zahlen zerlegen: jede Etage ergibt die Dachzahl', () {
+      for (var i = 0; i < 500; i++) {
+        final e = generateExercise(ExerciseType.zerlegen);
+        expect(e.houseSum, inInclusiveRange(5, 10));
+        expect(e.lines.length, inInclusiveRange(1, 3));
+        expect(e.answers.length, e.lines.length,
+            reason: 'genau eine Lücke pro Etage');
+        for (final line in e.lines) {
+          expect(line.length, inInclusiveRange(2, 3));
+          expect(line.where((tok) => tok.isBlank).length, 1);
+          var sum = 0;
+          for (final tok in line) {
+            final n =
+                tok.isBlank ? e.answers[tok.blank!] : int.parse(tok.text!);
+            expect(n, greaterThanOrEqualTo(1));
+            sum += n;
+          }
+          expect(sum, e.houseSum);
+        }
+      }
     });
 
     test('Nachbarzahlen: Häuser-Tripel oder drei Nachbaraufgaben', () {

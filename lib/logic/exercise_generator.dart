@@ -6,6 +6,7 @@ enum ExerciseType {
   partner('Partnerzahlen', 'Wie viel fehlt bis zur 10?', '🔵'),
   zehner('Zehnerübergang', 'Rechne bis 10 und dann weiter', '🔟'),
   fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
+  zerlegen('Zahlen zerlegen', 'Fülle das Zahlenhaus!', '🧩'),
   kette('Kettenaufgaben', 'Rechne die ganze Kette', '🔗'),
   korrektFalsch('Korrekt oder falsch?', 'Stimmt die Rechnung?', '⚖️'),
   nachbar('Nachbarzahlen', 'Finde die Nachbarn!', '🏠'),
@@ -64,13 +65,17 @@ class Exercise {
   /// Partnerzahlen: so viele von 10 Punkten sind ausgemalt.
   final int? dots;
 
+  /// Zahlenhaus: die Dachzahl — jede Zeile (Etage) ergibt diese Summe.
+  final int? houseSum;
+
   Exercise(
       {this.prompt,
       required this.lines,
       this.answers = const [],
       this.isTrue,
       this.solution,
-      this.dots});
+      this.dots,
+      this.houseSum});
 
   bool get isTrueFalse => isTrue != null;
 }
@@ -92,6 +97,8 @@ Exercise generateExercise(ExerciseType type,
       return _zehner(plus: progress < 0.7);
     case ExerciseType.fehlend:
       return _fehlend(maxN);
+    case ExerciseType.zerlegen:
+      return _zerlegen();
     case ExerciseType.kette:
       return _kette(progress: progress);
     case ExerciseType.korrektFalsch:
@@ -186,6 +193,39 @@ Exercise _fehlend(int maxN) {
       ]
     ],
     answers: [missingFirst ? a : bb],
+  );
+}
+
+/// Zahlen zerlegen (Zahlenhaus): jede Etage ergibt zusammen die Dachzahl.
+/// 1-3 Etagen mit je 2-3 Fenstern, pro Etage fehlt genau eine Zahl.
+Exercise _zerlegen() {
+  final sum = _rng.nextInt(6) + 5; // Dachzahl 5..10
+  final floors = _rng.nextInt(3) + 1;
+  final cells = _rng.nextInt(2) + 2; // Fenster pro Etage
+  final lines = <List<Token>>[];
+  final answers = <int>[];
+  for (var f = 0; f < floors; f++) {
+    // Zerlegung der Dachzahl in `cells` Teile, jeder mindestens 1.
+    final parts = <int>[];
+    var rest = sum;
+    for (var c = 0; c < cells; c++) {
+      final remaining = cells - c - 1;
+      final v = remaining == 0 ? rest : _rng.nextInt(rest - remaining) + 1;
+      parts.add(v);
+      rest -= v;
+    }
+    final blankIdx = _rng.nextInt(cells);
+    lines.add([
+      for (var c = 0; c < cells; c++)
+        if (c == blankIdx) b(answers.length) else t('${parts[c]}'),
+    ]);
+    answers.add(parts[blankIdx]);
+  }
+  return Exercise(
+    prompt: 'Jedes Stockwerk ergibt zusammen die Zahl im Dach!',
+    houseSum: sum,
+    lines: lines,
+    answers: answers,
   );
 }
 
