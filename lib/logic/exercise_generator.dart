@@ -283,26 +283,64 @@ List<List<int>> _pyramidRows(List<int> base) {
   return rows;
 }
 
+/// Zahlenmauer, bei der die Spitze und die Mitte gegeben sind und genau ein
+/// Basisstein fehlt — mit einer einzigen Subtraktion lösbar.
+Exercise _mauerEinBasisstein() {
+  final base = [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1];
+  final rows = _pyramidRows(base); // [Basis(3), Mitte(2), Spitze(1)]
+  final hideIdx = _rng.nextInt(3);
+  final lines = <List<Token>>[
+    [t('${rows[2][0]}')],
+    [t('${rows[1][0]}'), t('${rows[1][1]}')],
+    [for (var i = 0; i < 3; i++) i == hideIdx ? b(0) : t('${base[i]}')],
+  ];
+  return Exercise(
+    prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
+    pyramid: true,
+    lines: lines,
+    answers: [base[hideIdx]],
+  );
+}
+
+/// Zahlenmauer, bei der nur die Mitte gegeben ist. Ein Basisstein bleibt als
+/// Anker sichtbar (sonst wäre die Basis nicht eindeutig bestimmbar), die
+/// beiden anderen Basissteine und die Spitze fehlen. Erfordert verkettetes
+/// Rückwärtsrechnen: erst den Nachbarn des Ankers per Subtraktion finden,
+/// dann davon ausgehend den letzten Basisstein, dann die Spitze addieren.
+Exercise _mauerNurMitte() {
+  final base = [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1];
+  final rows = _pyramidRows(base); // [Basis(3), Mitte(2), Spitze(1)]
+  final anchorLeft = _rng.nextBool();
+  final answers = <int>[];
+  Token cell(int value, bool blank) {
+    if (!blank) return t('$value');
+    answers.add(value);
+    return b(answers.length - 1);
+  }
+
+  final apexToken = cell(rows[2][0], true);
+  final midTokens = [t('${rows[1][0]}'), t('${rows[1][1]}')];
+  final baseTokens = [
+    for (var i = 0; i < 3; i++) cell(base[i], anchorLeft ? i != 0 : i != 2),
+  ];
+  return Exercise(
+    prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
+    pyramid: true,
+    lines: [
+      [apexToken],
+      midTokens,
+      baseTokens,
+    ],
+    answers: answers,
+  );
+}
+
 /// Zahlenmauer: jeder Stein ist die Summe der zwei Steine direkt darunter.
 /// Wird die Runde schwerer: erst 3er-Basis, dann 4er-Basis (nur addieren),
-/// zum Schluss 3er-Basis mit Spitze gegeben und einem fehlenden Basisstein
-/// (Subtraktion).
+/// zum Schluss zwei Rückwärts-Varianten unterschiedlicher Schwierigkeit.
 Exercise _mauer({required double progress}) {
   if (progress >= 0.8) {
-    final base = [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1];
-    final rows = _pyramidRows(base); // [Basis(3), Mitte(2), Spitze(1)]
-    final hideIdx = _rng.nextInt(3);
-    final lines = <List<Token>>[
-      [t('${rows[2][0]}')],
-      [t('${rows[1][0]}'), t('${rows[1][1]}')],
-      [for (var i = 0; i < 3; i++) i == hideIdx ? b(0) : t('${base[i]}')],
-    ];
-    return Exercise(
-      prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
-      pyramid: true,
-      lines: lines,
-      answers: [base[hideIdx]],
-    );
+    return _rng.nextBool() ? _mauerEinBasisstein() : _mauerNurMitte();
   }
 
   final baseSize = progress < 0.5 ? 3 : 4;
