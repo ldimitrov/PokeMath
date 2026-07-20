@@ -345,27 +345,28 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                               _buildLine(line),
                               const SizedBox(height: 16),
                             ],
-                          SizedBox(
-                            height: 64,
-                            child: Center(
-                              child: _feedback != null
-                                  ? Text(
-                                      _feedback!,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 19,
-                                        fontWeight: FontWeight.bold,
-                                        color: _feedbackGood
-                                            ? Colors.green
-                                            : scheme.error,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                          ),
                         ],
                       ),
                     ),
+                  ),
+                ),
+                // Feedback bleibt immer sichtbar, unabhängig davon wie hoch
+                // die Aufgabe ist (z.B. vierstöckige Zahlenmauer).
+                SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: _feedback != null
+                        ? Text(
+                            _feedback!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  _feedbackGood ? Colors.green : scheme.error,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
                 if (_exercise.isTrueFalse)
