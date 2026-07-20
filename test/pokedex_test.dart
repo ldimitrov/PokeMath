@@ -110,6 +110,9 @@ void main() {
       ]);
       // Relaxo hat eine Vorstufe: Mampfaxo.
       expect(evolutionChain(143).map((l) => l.single.id), [446, 143]);
+      // Pikachu-Familie: Pichu → Pikachu → Raichu, auch von Raichu aus.
+      expect(evolutionChain(25).map((l) => l.single.id), [172, 25, 26]);
+      expect(evolutionChain(26).first.single.id, 172);
     });
 
     test('für jedes Pokémon liegt ein Bild in assets/pokemon', () {

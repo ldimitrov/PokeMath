@@ -122,13 +122,21 @@ const List<Species> pokedex = [
     'Aus seinem Panzer schießen starke Wasserkanonen — die stärkste Stufe von Schiggy.',
   ),
   Species(
+    172,
+    'Pichu',
+    types: [PokeType.elektro],
+    'Ein winziges Elektro-Baby. Es kann noch nicht viel Strom speichern und erschreckt sich manchmal selbst.',
+    evolvesAtEnergy: 100,
+    evolvesTo: [25],
+    catchWeight: 10,
+  ),
+  Species(
     25,
     'Pikachu',
     types: [PokeType.elektro],
     'Das berühmteste Elektro-Pokémon! In seinen Backen speichert es Blitze.',
     evolvesAtEnergy: 150,
     evolvesTo: [26],
-    catchWeight: 15,
   ),
   Species(
     26,

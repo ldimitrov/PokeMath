@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p assets/pokemon
-for id in 1 2 3 4 5 6 7 8 9 25 26 39 40 50 51 52 53 54 55 58 59 129 130 133 134 135 136 143 147 148 149 150 151 446; do
+for id in 1 2 3 4 5 6 7 8 9 25 26 39 40 50 51 52 53 54 55 58 59 129 130 133 172 134 135 136 143 147 148 149 150 151 446; do
   [ -f "assets/pokemon/$id.png" ] && continue
   echo "Fetching $id..."
   curl -sfL -o "assets/pokemon/$id.png" \
