@@ -283,34 +283,27 @@ List<List<int>> _pyramidRows(List<int> base) {
   return rows;
 }
 
-/// Zahlenmauer, bei der die Spitze und die Mitte gegeben sind und genau ein
-/// Basisstein fehlt — mit einer einzigen Subtraktion lösbar.
-Exercise _mauerEinBasisstein() {
-  final base = [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1];
-  final rows = _pyramidRows(base); // [Basis(3), Mitte(2), Spitze(1)]
-  final hideIdx = _rng.nextInt(3);
-  final lines = <List<Token>>[
-    [t('${rows[2][0]}')],
-    [t('${rows[1][0]}'), t('${rows[1][1]}')],
-    [for (var i = 0; i < 3; i++) i == hideIdx ? b(0) : t('${base[i]}')],
-  ];
-  return Exercise(
-    prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
-    pyramid: true,
-    lines: lines,
-    answers: [base[hideIdx]],
-  );
-}
+/// Zufällige Basissteine, klein genug, dass die Spitze nie über 20 kommt.
+List<int> _randomBase(int size) => size == 3
+    ? [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1]
+    : [
+        _rng.nextInt(3) + 1,
+        _rng.nextInt(2) + 1,
+        _rng.nextInt(2) + 1,
+        _rng.nextInt(3) + 1,
+      ];
 
-/// Zahlenmauer, bei der nur die Mitte gegeben ist. Ein Basisstein bleibt als
-/// Anker sichtbar (sonst wäre die Basis nicht eindeutig bestimmbar), die
-/// beiden anderen Basissteine und die Spitze fehlen. Erfordert verkettetes
-/// Rückwärtsrechnen: erst den Nachbarn des Ankers per Subtraktion finden,
-/// dann davon ausgehend den letzten Basisstein, dann die Spitze addieren.
-Exercise _mauerNurMitte() {
-  final base = [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1];
-  final rows = _pyramidRows(base); // [Basis(3), Mitte(2), Spitze(1)]
-  final anchorLeft = _rng.nextBool();
+/// Zahlenmauer rückwärts: alle Reihen zwischen Basis und Spitze sind
+/// vollständig gegeben, aber die Spitze selbst fehlt — und genau ein
+/// Basisstein fehlt ebenfalls. Jede Lücke ist über eine einzige Addition
+/// bzw. Subtraktion mit der Reihe direkt darüber/darunter lösbar,
+/// unabhängig davon, welcher Basisstein fehlt. Funktioniert für 3er- und
+/// 4er-Basen gleichermaßen.
+Exercise _mauerBackward() {
+  final baseSize = _rng.nextBool() ? 3 : 4;
+  final base = _randomBase(baseSize);
+  final rows = _pyramidRows(base); // rows[0] = Basis ... rows.last = Spitze
+  final hideBaseIdx = _rng.nextInt(baseSize);
   final answers = <int>[];
   Token cell(int value, bool blank) {
     if (!blank) return t('$value');
@@ -318,40 +311,33 @@ Exercise _mauerNurMitte() {
     return b(answers.length - 1);
   }
 
-  final apexToken = cell(rows[2][0], true);
-  final midTokens = [t('${rows[1][0]}'), t('${rows[1][1]}')];
-  final baseTokens = [
-    for (var i = 0; i < 3; i++) cell(base[i], anchorLeft ? i != 0 : i != 2),
-  ];
+  final lines = <List<Token>>[];
+  for (var r = rows.length - 1; r >= 0; r--) {
+    final isApex = r == rows.length - 1;
+    final isBase = r == 0;
+    lines.add([
+      for (var i = 0; i < rows[r].length; i++)
+        cell(rows[r][i], isApex || (isBase && i == hideBaseIdx)),
+    ]);
+  }
   return Exercise(
     prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
     pyramid: true,
-    lines: [
-      [apexToken],
-      midTokens,
-      baseTokens,
-    ],
+    lines: lines,
     answers: answers,
   );
 }
 
 /// Zahlenmauer: jeder Stein ist die Summe der zwei Steine direkt darunter.
 /// Wird die Runde schwerer: erst 3er-Basis, dann 4er-Basis (nur addieren),
-/// zum Schluss zwei Rückwärts-Varianten unterschiedlicher Schwierigkeit.
+/// zum Schluss rückwärts: Spitze und ein Basisstein fehlen (3er oder 4er).
 Exercise _mauer({required double progress}) {
   if (progress >= 0.8) {
-    return _rng.nextBool() ? _mauerEinBasisstein() : _mauerNurMitte();
+    return _mauerBackward();
   }
 
   final baseSize = progress < 0.5 ? 3 : 4;
-  final base = baseSize == 3
-      ? [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1]
-      : [
-          _rng.nextInt(3) + 1,
-          _rng.nextInt(2) + 1,
-          _rng.nextInt(2) + 1,
-          _rng.nextInt(3) + 1,
-        ];
+  final base = _randomBase(baseSize);
   final rows = _pyramidRows(base); // rows[0] = Basis ... rows.last = Spitze
   final lines = <List<Token>>[];
   final answers = <int>[];

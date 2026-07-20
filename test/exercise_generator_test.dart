@@ -286,30 +286,26 @@ void main() {
     });
 
     test(
-        'Zahlenmauern: am Rundenende gibt es zwei Rückwärts-Varianten '
-        'unterschiedlicher Schwierigkeit', () {
-      var seenEasy = false, seenHard = false;
+        'Zahlenmauern: am Rundenende fehlt immer die Spitze und genau ein '
+        'Basisstein, sowohl bei 3er- als auch 4er-Basis', () {
+      var seen3 = false, seen4 = false;
       for (var i = 0; i < 300; i++) {
         final e = generateExercise(ExerciseType.mauer, progress: 0.9);
-        expect(e.lines[1].every((tok) => !tok.isBlank), isTrue); // Mitte
         checkPyramid(e);
 
-        if (e.answers.length == 1) {
-          // Einfache Variante: Spitze gegeben, ein Basisstein fehlt.
-          seenEasy = true;
-          expect(e.lines.first.single.isBlank, isFalse);
-          expect(e.lines.last.where((tok) => tok.isBlank).length, 1);
-        } else {
-          // Schwere Variante: nur die Mitte gegeben, Spitze und zwei
-          // Basissteine fehlen — genau ein Basisstein bleibt als Anker.
-          seenHard = true;
-          expect(e.answers.length, 3);
-          expect(e.lines.first.single.isBlank, isTrue);
-          expect(e.lines.last.where((tok) => tok.isBlank).length, 2);
-          expect(e.lines.last.where((tok) => !tok.isBlank).length, 1);
+        expect(e.lines.first.length, 1); // Spitze
+        expect(e.lines.first.single.isBlank, isTrue);
+        // alle Reihen zwischen Spitze und Basis sind vollständig gegeben
+        for (var r = 1; r < e.lines.length - 1; r++) {
+          expect(e.lines[r].every((tok) => !tok.isBlank), isTrue);
         }
+        expect(e.lines.last.where((tok) => tok.isBlank).length, 1);
+        expect(e.answers.length, 2); // Spitze + ein Basisstein
+
+        if (e.lines.last.length == 3) seen3 = true;
+        if (e.lines.last.length == 4) seen4 = true;
       }
-      expect(seenEasy && seenHard, isTrue);
+      expect(seen3 && seen4, isTrue);
     });
 
     test('Nachbarzahlen: Häuser-Tripel oder drei Nachbaraufgaben', () {
