@@ -30,10 +30,11 @@ void main() {
       expect(types, isNot(contains(ExerciseType.nachbar)));
     });
 
-    test('Klasse 1 hat 8 Aufgabentypen ohne Partnerzahlen', () {
+    test('Klasse 1 hat 9 Aufgabentypen ohne Partnerzahlen', () {
       final types = typesForGrade(1);
-      expect(types, hasLength(8));
+      expect(types, hasLength(9));
       expect(types, contains(ExerciseType.zerlegen));
+      expect(types, contains(ExerciseType.mauer));
       expect(types, isNot(contains(ExerciseType.partner)));
       expect(types, isNot(contains(ExerciseType.vergleich)));
     });
@@ -239,6 +240,62 @@ void main() {
           }
           expect(sum, e.houseSum);
         }
+      }
+    });
+
+    /// Löst eine Zahlenmauer auf: alle Zeilen (Spitze zuerst, Basis
+    /// zuletzt), Blanks durch [answers] ersetzt, prüft die Summenregel.
+    void checkPyramid(Exercise e) {
+      final rows = [
+        for (final line in e.lines)
+          [for (final tok in line) tok.isBlank ? e.answers[tok.blank!] : int.parse(tok.text!)]
+      ]; // Spitze zuerst ... Basis zuletzt
+      for (var r = 0; r < rows.length - 1; r++) {
+        final upper = rows[r]; // näher an der Spitze, kürzer
+        final lower = rows[r + 1]; // näher an der Basis, länger
+        expect(lower.length, upper.length + 1);
+        for (var i = 0; i < upper.length; i++) {
+          expect(upper[i], lower[i] + lower[i + 1],
+              reason: 'Stein muss Summe der zwei Steine darunter sein');
+        }
+      }
+      for (final row in rows) {
+        for (final v in row) {
+          expect(v, inInclusiveRange(1, 20));
+        }
+      }
+    }
+
+    test('Zahlenmauern: 3er-Basis am Rundenanfang, nur Addition', () {
+      for (var i = 0; i < 300; i++) {
+        final e = generateExercise(ExerciseType.mauer, progress: 0.2);
+        expect(e.pyramid, isTrue);
+        expect(e.lines.last.length, 3); // Basis vollständig gegeben
+        expect(e.lines.last.every((tok) => !tok.isBlank), isTrue);
+        checkPyramid(e);
+      }
+    });
+
+    test('Zahlenmauern: 4er-Basis in der Rundenmitte, nur Addition', () {
+      for (var i = 0; i < 300; i++) {
+        final e = generateExercise(ExerciseType.mauer, progress: 0.6);
+        expect(e.lines.last.length, 4);
+        expect(e.lines.last.every((tok) => !tok.isBlank), isTrue);
+        checkPyramid(e);
+      }
+    });
+
+    test(
+        'Zahlenmauern: am Rundenende ist die Spitze gegeben und genau ein '
+        'Basisstein fehlt', () {
+      for (var i = 0; i < 300; i++) {
+        final e = generateExercise(ExerciseType.mauer, progress: 0.9);
+        expect(e.lines.first.length, 1); // Spitze
+        expect(e.lines.first.single.isBlank, isFalse);
+        expect(e.lines[1].every((tok) => !tok.isBlank), isTrue); // Mitte
+        expect(e.lines.last.where((tok) => tok.isBlank).length, 1);
+        expect(e.answers.length, 1);
+        checkPyramid(e);
       }
     });
 

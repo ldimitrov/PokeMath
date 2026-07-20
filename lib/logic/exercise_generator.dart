@@ -8,6 +8,7 @@ enum ExerciseType {
   zehner('Zehnerübergang', 'Rechne bis 10 und dann weiter', '🔟'),
   fehlend('Fehlende Zahlen', 'Welche Zahl fehlt?', '🔍'),
   zerlegen('Zahlen zerlegen', 'Fülle das Zahlenhaus!', '🏠'),
+  mauer('Zahlenmauern', 'Baue die Zahlenmauer!', '🧱'),
   kette('Kettenaufgaben', 'Rechne die ganze Kette', '🔗'),
   korrektFalsch('Korrekt oder falsch?', 'Stimmt die Rechnung?', '⚖️'),
   nachbar('Nachbarzahlen', 'Finde die Nachbarn!', '🏘️'),
@@ -73,6 +74,10 @@ class Exercise {
   /// Zahlenhaus: die Dachzahl — jede Zeile (Etage) ergibt diese Summe.
   final int? houseSum;
 
+  /// Zahlenmauer: [lines] sind die Reihen von der Spitze zur Basis, jeder
+  /// Stein ist die Summe der beiden Steine direkt darunter.
+  final bool pyramid;
+
   /// Auswahl-Modus: diese Optionen erscheinen als Buttons statt des
   /// Ziffernblocks; [answers] enthält dann den Index der richtigen Option.
   final List<String>? choices;
@@ -85,6 +90,7 @@ class Exercise {
       this.solution,
       this.dots,
       this.houseSum,
+      this.pyramid = false,
       this.choices});
 
   bool get isTrueFalse => isTrue != null;
@@ -113,6 +119,8 @@ Exercise generateExercise(ExerciseType type,
       return _fehlend(maxN);
     case ExerciseType.zerlegen:
       return _zerlegen();
+    case ExerciseType.mauer:
+      return _mauer(progress: progress);
     case ExerciseType.kette:
       return _kette(progress: progress);
     case ExerciseType.korrektFalsch:
@@ -255,6 +263,76 @@ Exercise _zerlegen() {
   return Exercise(
     prompt: 'Jedes Stockwerk ergibt zusammen die Zahl im Dach!',
     houseSum: sum,
+    lines: lines,
+    answers: answers,
+  );
+}
+
+/// Baut eine Zahlenmauer von der Basis aus: jede Reihe darüber enthält die
+/// Summen benachbarter Steine. Rückgabe: index 0 = Basis, letzter = Spitze.
+List<List<int>> _pyramidRows(List<int> base) {
+  final rows = [base];
+  var current = base;
+  while (current.length > 1) {
+    final next = [
+      for (var i = 0; i < current.length - 1; i++) current[i] + current[i + 1]
+    ];
+    rows.add(next);
+    current = next;
+  }
+  return rows;
+}
+
+/// Zahlenmauer: jeder Stein ist die Summe der zwei Steine direkt darunter.
+/// Wird die Runde schwerer: erst 3er-Basis, dann 4er-Basis (nur addieren),
+/// zum Schluss 3er-Basis mit Spitze gegeben und einem fehlenden Basisstein
+/// (Subtraktion).
+Exercise _mauer({required double progress}) {
+  if (progress >= 0.8) {
+    final base = [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1];
+    final rows = _pyramidRows(base); // [Basis(3), Mitte(2), Spitze(1)]
+    final hideIdx = _rng.nextInt(3);
+    final lines = <List<Token>>[
+      [t('${rows[2][0]}')],
+      [t('${rows[1][0]}'), t('${rows[1][1]}')],
+      [for (var i = 0; i < 3; i++) i == hideIdx ? b(0) : t('${base[i]}')],
+    ];
+    return Exercise(
+      prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
+      pyramid: true,
+      lines: lines,
+      answers: [base[hideIdx]],
+    );
+  }
+
+  final baseSize = progress < 0.5 ? 3 : 4;
+  final base = baseSize == 3
+      ? [for (var i = 0; i < 3; i++) _rng.nextInt(5) + 1]
+      : [
+          _rng.nextInt(3) + 1,
+          _rng.nextInt(2) + 1,
+          _rng.nextInt(2) + 1,
+          _rng.nextInt(3) + 1,
+        ];
+  final rows = _pyramidRows(base); // rows[0] = Basis ... rows.last = Spitze
+  final lines = <List<Token>>[];
+  final answers = <int>[];
+  for (var r = rows.length - 1; r >= 0; r--) {
+    final isBase = r == 0;
+    final rowTokens = <Token>[];
+    for (final v in rows[r]) {
+      if (isBase) {
+        rowTokens.add(t('$v'));
+      } else {
+        rowTokens.add(b(answers.length));
+        answers.add(v);
+      }
+    }
+    lines.add(rowTokens);
+  }
+  return Exercise(
+    prompt: 'Jeder Stein ist die Summe der zwei Steine darunter!',
+    pyramid: true,
     lines: lines,
     answers: answers,
   );

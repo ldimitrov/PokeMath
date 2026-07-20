@@ -319,6 +319,27 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                   _buildLine(line, windowed: true),
                               ],
                             )
+                          else if (_exercise.pyramid)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 18, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: widget.type.tileColor,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (var i = 0;
+                                      i < _exercise.lines.length;
+                                      i++) ...[
+                                    if (i > 0) const SizedBox(height: 10),
+                                    _buildLine(_exercise.lines[i],
+                                        windowed: true),
+                                  ],
+                                ],
+                              ),
+                            )
                           else
                             for (final line in _exercise.lines) ...[
                               _buildLine(line),
