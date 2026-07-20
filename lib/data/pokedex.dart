@@ -266,7 +266,6 @@ const List<Species> pokedex = [
     'Relaxo',
     types: [PokeType.normal],
     'Es schläft fast den ganzen Tag und ist trotzdem riesig stark.',
-    catchWeight: 5,
   ),
   Species(
     147,

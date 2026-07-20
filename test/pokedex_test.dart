@@ -41,6 +41,21 @@ void main() {
       }
     });
 
+    test('Arten mit einer Vorstufe sind nie direkt fangbar', () {
+      // Regression: Relaxo hatte fälschlich catchWeight > 0, obwohl
+      // Mampfaxo als Vorstufe existiert — dadurch war Mampfaxo umgehbar.
+      final hasPreEvolution = {
+        for (final s in pokedex)
+          for (final target in s.evolvesTo) target,
+      };
+      for (final id in hasPreEvolution) {
+        final s = speciesById(id);
+        expect(s.catchWeight, 0,
+            reason:
+                '${s.name} hat eine Vorstufe, darf also nicht direkt fangbar sein');
+      }
+    });
+
     test('randomCatch liefert nur fangbare Pokémon, alle kommen vor', () {
       final rng = Random(42);
       final drawn = <int, int>{};
